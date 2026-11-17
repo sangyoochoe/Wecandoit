@@ -47,10 +47,23 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,x86_64-linux-android
+          targets: aarch64-linux-android,x86_64-unknown-linux-android
 
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --locked
+
+      - name: Prepare standalone Rust bridge
+        working-directory: craft-anything-android
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("native/Cargo.toml")
+          s = p.read_text()
+          s = s.replace('upstream-engine = ["dep:craft-anything-engine"]', 'upstream-engine = []')
+          s = s.replace('upstream-formats = ["dep:craft-anything-formats"]', 'upstream-formats = []')
+          s = s.split('\n[dependencies.craft-anything-engine]\n', 1)[0].rstrip() + '\n'
+          p.write_text(s)
+          PY
 
       - name: Build Rust JNI libraries
         working-directory: craft-anything-android
