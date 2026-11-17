@@ -50,7 +50,7 @@ jobs:
               "Change file": "파일 변경",
               "Analyze on device": "기기에서 분석하기",
               "ANALYSIS / OVERVIEW": "분석 / 개요",
-              "Upstream format parsers are not linked. Build with CRAFT_ANDROID_WITH_UPSTREAM_FORMATS=1.": "현재 빌드에는 확장 형식 분석기가 포함되지 않았습니다. 기본 분석 기능만 사용할 수 있습니다.",
+              "Upstream format parsers are not linked. Build with CRAFT_ANDROID_WITH_UPSTREAM_FORMATS=1.": "사용 방법: [파일 변경]에서 APK·DEX·ZIP 파일을 고른 뒤 [기기에서 분석하기]를 누르세요. 분석 후 [상세 도구]에서 클래스와 메서드를 살펴보고, [AI 분석]에서 결과에 관해 질문할 수 있습니다. 현재 빌드에는 확장 형식 분석기가 포함되지 않아 일부 파일의 분석이 제한됩니다.",
               "Detailed Tools": "상세 도구",
               "Class search, method disassembly and Rust tools": "클래스 검색, 메서드 디스어셈블 및 Rust 도구",
               "AI Analysis": "AI 분석",
