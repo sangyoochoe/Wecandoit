@@ -39,6 +39,45 @@ jobs:
           s += "\n// Align Android Java compilation with Kotlin JVM 17.\nandroid {\n    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }\n}\n"
           p.write_text(s)
           PY
+          # Localize visible Android UI copy and explain the first-use flow.
+          python3 - <<'PY'
+          from pathlib import Path
+          replacements = {
+              "WORKSPACE / 01": "작업 공간 / 01",
+              "What would you like to analyze?": "무엇을 분석할까요?",
+              "APK · DEX · ZIP · ELF · PE": "APK · DEX · ZIP · ELF · PE",
+              "Files are read and analyzed locally with the Rust parser. The selected file is not executed.": "파일은 기기 안에서 Rust 분석기로 읽습니다. 선택한 파일을 실행하지 않습니다.",
+              "Change file": "파일 변경",
+              "Analyze on device": "기기에서 분석하기",
+              "ANALYSIS / OVERVIEW": "분석 / 개요",
+              "Upstream format parsers are not linked. Build with CRAFT_ANDROID_WITH_UPSTREAM_FORMATS=1.": "현재 빌드에는 확장 형식 분석기가 포함되지 않았습니다. 기본 분석 기능만 사용할 수 있습니다.",
+              "Detailed Tools": "상세 도구",
+              "Class search, method disassembly and Rust tools": "클래스 검색, 메서드 디스어셈블 및 Rust 도구",
+              "AI Analysis": "AI 분석",
+              "Ask questions based on analysis results and check the evidence.": "분석 결과를 바탕으로 질문하고 근거를 확인하세요.",
+              "Open": "열기",
+              "Quick": "간편",
+              "Expert": "전문가",
+              "Home": "홈",
+              "Settings": "설정",
+          }
+          roots = [Path("craft-anything-android/app/src")]
+          for root in roots:
+              if not root.exists():
+                  continue
+              for p in root.rglob("*"):
+                  if p.suffix not in {".kt", ".xml"}:
+                      continue
+                  try:
+                      original = p.read_text()
+                  except UnicodeDecodeError:
+                      continue
+                  updated = original
+                  for old, new in replacements.items():
+                      updated = updated.replace(old, new)
+                  if updated != original:
+                      p.write_text(updated)
+          PY
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
