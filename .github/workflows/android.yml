@@ -36,7 +36,7 @@ jobs:
           p = Path("craft-anything-android/app/build.gradle.kts")
           s = p.read_text()
           s = s.replace("VERSION_1_8", "VERSION_17")
-          s += "\n// Enforce Java 17 bytecode for every Java compile task.\ntasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {\n    sourceCompatibility = \"17\"\n    targetCompatibility = \"17\"\n}\n"
+          s += "\n// Align Android Java compilation with Kotlin JVM 17.\nandroid {\n    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }\n}\n"
           p.write_text(s)
           PY
 
