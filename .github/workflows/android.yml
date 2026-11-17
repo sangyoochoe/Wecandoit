@@ -48,6 +48,7 @@ jobs:
           # Localize visible Android UI copy and explain the first-use flow.
           python3 - <<'PY'
           from pathlib import Path
+          import re
           replacements = {
               "WORKSPACE / 01": "작업 공간 / 01",
               "What would you like to analyze?": "무엇을 분석할까요?",
@@ -80,7 +81,9 @@ jobs:
                       continue
                   updated = original
                   for old, new in replacements.items():
-                      updated = updated.replace(old, new)
+                      # Replace UI string literals only; never mutate Kotlin identifiers/imports.
+                      pattern = r'(?<=[\"\'])' + re.escape(old) + r'(?=[\"\'])'
+                      updated = re.sub(pattern, lambda _m: new, updated)
                   if updated != original:
                       p.write_text(updated)
           PY
