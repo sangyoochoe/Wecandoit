@@ -29,6 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: storytold/craft-anything
+          ref: 63801a686eaa66ea91f8a252025088d6a54992e3
           path: upstream
 
       - name: Extract Android project
@@ -57,7 +58,7 @@ jobs:
               "Change file": "파일 변경",
               "Analyze on device": "기기에서 분석하기",
               "ANALYSIS / OVERVIEW": "분석 / 개요",
-              "Upstream format parsers are not linked. Build with CRAFT_ANDROID_WITH_UPSTREAM_FORMATS=1.": "사용 방법: [파일 변경]에서 APK·DEX·ZIP 파일을 고른 뒤 [기기에서 분석하기]를 누르세요. 분석 후 [상세 도구]에서 클래스와 메서드를 살펴보고, [AI 분석]에서 결과에 관해 질문할 수 있습니다. 현재 빌드에는 확장 형식 분석기가 포함되지 않아 일부 파일의 분석이 제한됩니다.",
+              "Upstream format parsers are not linked. Build with CRAFT_ANDROID_WITH_UPSTREAM_FORMATS=1.": "사용 방법: [파일 변경]에서 파일을 선택한 뒤 [기기에서 분석하기]를 누르세요. 이 빌드에는 upstream 확장 형식 파서가 포함되어 있습니다. 분석 후 [상세 도구]에서 결과를 살펴보고 [AI 분석]에서 질문할 수 있습니다. 단, 데스크톱용 전체 AI 에이전트 엔진은 아직 Android에 연결되지 않았습니다.",
               "Detailed Tools": "상세 도구",
               "Class search, method disassembly and Rust tools": "클래스 검색, 메서드 디스어셈블 및 Rust 도구",
               "AI Analysis": "AI 분석",
@@ -112,7 +113,7 @@ jobs:
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --locked
 
-      - name: Build Rust JNI libraries with upstream format parsers
+      - name: Test upstream format parser crate\n        working-directory: upstream\n        run: cargo test --locked -p craft-anything-formats --lib\n\n      - name: Build Rust JNI libraries with upstream format parsers
         working-directory: upstream/apps/craft-anything-android
         env:
           CRAFT_ANDROID_WITH_UPSTREAM_FORMATS: '1'
