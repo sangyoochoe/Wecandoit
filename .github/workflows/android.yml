@@ -43,7 +43,15 @@ jobs:
           p = Path("craft-anything-android/app/build.gradle.kts")
           s = p.read_text()
           s = s.replace("VERSION_1_8", "VERSION_17")
-          s += "\n// Align Android Java compilation with Kotlin JVM 17.\nandroid {\n    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }\n}\n"
+          s += "
+// Align Android Java compilation with Kotlin JVM 17.
+android {
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+"
           p.write_text(s)
           PY
           # Localize visible Android UI copy and explain the first-use flow.
@@ -113,7 +121,11 @@ jobs:
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --locked
 
-      - name: Test upstream format parser crate\n        working-directory: upstream\n        run: cargo test --locked -p craft-anything-formats --lib\n\n      - name: Build Rust JNI libraries with upstream format parsers
+      - name: Test upstream format parser crate
+        working-directory: upstream
+        run: cargo test --locked -p craft-anything-formats --lib
+
+      - name: Build Rust JNI libraries with upstream format parsers
         working-directory: upstream/apps/craft-anything-android
         env:
           CRAFT_ANDROID_WITH_UPSTREAM_FORMATS: '1'
