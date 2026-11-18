@@ -88,6 +88,10 @@ jobs:
           mkdir -p upstream/apps
           cp -a craft-anything-android upstream/apps/craft-anything-android
 
+      - name: Test upstream format parser crate
+        working-directory: upstream
+        run: cargo test --locked -p craft-anything-formats --lib
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -108,10 +112,6 @@ jobs:
 
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --locked
-
-      - name: Test upstream format parser crate
-        working-directory: upstream
-        run: cargo test --locked -p craft-anything-formats --lib
 
       - name: Build Rust JNI libraries with upstream format parsers
         working-directory: upstream/apps/craft-anything-android
