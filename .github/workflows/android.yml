@@ -85,12 +85,14 @@ jobs:
                   if updated != original:
                       p.write_text(updated)
           PY
-          mkdir -p upstream/apps
-          cp -a craft-anything-android upstream/apps/craft-anything-android
-
       - name: Test upstream format parser crate
         working-directory: upstream
         run: cargo test --locked -p craft-anything-formats --lib
+
+      - name: Add Android project to upstream workspace
+        run: |
+          mkdir -p upstream/apps
+          cp -a craft-anything-android upstream/apps/craft-anything-android
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
