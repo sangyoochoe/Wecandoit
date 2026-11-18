@@ -85,6 +85,15 @@ jobs:
                   if updated != original:
                       p.write_text(updated)
           PY
+      - name: Inspect Android source layout for local model integration
+        run: |
+          echo '--- source files ---'
+          find craft-anything-android -maxdepth 5 -type f | sort | head -200
+          echo '--- AI settings and provider references ---'
+          grep -RniE 'Ollama|provider|API 주소|API 키|modelId|model_id|Settings' craft-anything-android/app/src --include='*.kt' | head -240 || true
+          echo '--- native crate files ---'
+          find craft-anything-android/native -maxdepth 4 -type f -print | sort
+
       - name: Test upstream format parser crate
         working-directory: upstream
         run: cargo test --locked -p craft-anything-formats --lib
