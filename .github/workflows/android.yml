@@ -37,24 +37,14 @@ jobs:
           test -f CraftAnything-Android-Phase10.zip || { echo "::error::CraftAnything-Android-Phase10.zip not found in repository root."; exit 1; }
           unzip -q CraftAnything-Android-Phase10.zip -d .
           test -f craft-anything-android/app/build.gradle.kts
-          # Match Java's bytecode target to the Kotlin compiler's default JVM 17 target.
           python3 - <<'PY'
           from pathlib import Path
           p = Path("craft-anything-android/app/build.gradle.kts")
           s = p.read_text()
           s = s.replace("VERSION_1_8", "VERSION_17")
-          s += "
-// Align Android Java compilation with Kotlin JVM 17.
-android {
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-"
+          s += "\n// Align Android Java compilation with Kotlin JVM 17.\nandroid {\n    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }\n}\n"
           p.write_text(s)
           PY
-          # Localize visible Android UI copy and explain the first-use flow.
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -90,13 +80,11 @@ android {
                       continue
                   updated = original
                   for old, new in replacements.items():
-                      # Replace UI string literals only; never mutate Kotlin identifiers/imports.
-                      pattern = r'(?<=[\"\'])' + re.escape(old) + r'(?=[\"\'])'
+                      pattern = r'(?<=["\'])' + re.escape(old) + r'(?=["\'])'
                       updated = re.sub(pattern, lambda _m: new, updated)
                   if updated != original:
                       p.write_text(updated)
           PY
-          # The Android bridge expects the upstream crates at ../../../crates.
           mkdir -p upstream/apps
           cp -a craft-anything-android upstream/apps/craft-anything-android
 
@@ -129,7 +117,6 @@ android {
         working-directory: upstream/apps/craft-anything-android
         env:
           CRAFT_ANDROID_WITH_UPSTREAM_FORMATS: '1'
-          # Full engine remains opt-in: crates/platform still contains desktop process/PTY backends.
           CRAFT_ANDROID_WITH_UPSTREAM_ENGINE: '0'
         run: ./native/build-android.sh
 
