@@ -71,4 +71,29 @@ if old not in s:
     raise SystemExit("Could not find endpoint/key fields")
 s = s.replace(old, new, 1)
 
+
+# Persist settings synchronously and show the actual result.
+provider_file = p.parent / "AiProvider.kt"
+provider_src = provider_file.read_text(encoding="utf-8")
+provider_src = provider_src.replace(
+    "    fun save(settings: AiSettings) {",
+    "    fun save(settings: AiSettings): Boolean {"
+)
+provider_src = provider_src.replace(
+    "        prefs.edit()",
+    "        return prefs.edit()",
+    1
+)
+provider_src = provider_src.replace(
+    '            .apply()',
+    '            .commit()',
+    1
+)
+provider_file.write_text(provider_src, encoding="utf-8")
+
+s = s.replace(
+    '                                        SecureAiSettings(activity).save(aiSettings)\n                                        status = "AI 설정을 안전하게 저장했습니다."',
+    '                                        val saved = SecureAiSettings(activity).save(aiSettings)\n                                        status = if (saved) "설정 저장 완료" else "설정 저장 실패. 다시 시도해 주세요."'
+)
+
 p.write_text(s, encoding="utf-8")
