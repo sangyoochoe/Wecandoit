@@ -38,6 +38,7 @@ jobs:
           unzip -q CraftAnything-Android-Phase10.zip -d .
           test -f craft-anything-android/app/build.gradle.kts
           python3 scripts/patch_android_beginner_ui.py
+          python3 scripts/patch_android_local_task_model.py
           python3 - <<'PY'
           from pathlib import Path
           p = Path("craft-anything-android/app/build.gradle.kts")
