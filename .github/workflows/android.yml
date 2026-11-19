@@ -40,6 +40,7 @@ jobs:
           python3 scripts/patch_android_beginner_ui.py
           python3 scripts/patch_android_local_task_model.py
           python3 -m py_compile scripts/patch_android_local_task_model.py
+          echo 'Local MediaPipe task adapter patch validated.'
           python3 - <<'PY'
           from pathlib import Path
           p = Path("craft-anything-android/app/build.gradle.kts")
