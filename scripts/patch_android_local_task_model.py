@@ -62,7 +62,9 @@ class LocalTaskModel(private val context: Context) {
 
 main = app / "src/main/java/ai/storyteller/craftanything/MainActivity.kt"
 s = main.read_text(encoding="utf-8")
-if "import java.io.File" not in s:\n    s = s.replace("import java.io.ByteArrayOutputStream", "import java.io.ByteArrayOutputStream\\nimport java.io.File")\nif "private val localTaskModel by lazy" not in s:
+if "import java.io.File" not in s:
+    s = s.replace("import java.io.ByteArrayOutputStream", "import java.io.ByteArrayOutputStream\\nimport java.io.File")
+if "private val localTaskModel by lazy" not in s:
     s = s.replace(
         'class MainActivity : ComponentActivity() {',
         'class MainActivity : ComponentActivity() {\n    private val localTaskModel by lazy { LocalTaskModel(this) }'
