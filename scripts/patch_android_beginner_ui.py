@@ -70,4 +70,29 @@ new = '''                                OutlinedTextField(aiSettings.baseUrl, {
 if old not in s:
     raise SystemExit("Could not find endpoint/key fields")
 s = s.replace(old, new, 1)
+
+# Make settings persistence synchronous and expose its result in the UI.
+provider_file = p.parent / "AiProvider.kt"
+provider_src = provider_file.read_text(encoding="utf-8")
+provider_src = provider_src.replace(
+    "    fun save(settings: AiSettings) {\\n        prefs.edit()",
+    "    fun save(settings: AiSettings): Boolean {\\n        return prefs.edit()"
+).replace(
+    "            .putString(\\"apiKey\\", encrypt(settings.apiKey.trim()))\\n            .apply()",
+    "            .putString(\\"apiKey\\", encrypt(settings.apiKey.trim()))\\n            .commit()"
+)
+provider_file.write_text(provider_src, encoding="utf-8")
+s = s.replace(
+    "    var showAdvancedAi by remember { mutableStateOf(false) }",
+    "    var showAdvancedAi by remember { mutableStateOf(false) }\\n    var aiSettingsSaveMessage by remember { mutableStateOf(\\"\\") }"
+)
+s = s.replace(
+    "                                        SecureAiSettings(activity).save(aiSettings)\\n                                        status = \\"AI 설정을 안전하게 저장했습니다.\\"",
+    "                                        aiSettingsSaveMessage = if (SecureAiSettings(activity).save(aiSettings)) \\"저장 완료: 이 기기에 설정을 저장했습니다.\\" else \\"저장 실패: 다시 시도해 주세요.\\"\\n                                        status = aiSettingsSaveMessage"
+)
+s = s.replace(
+    "                                ) { Text(\\"설정 저장\\") }",
+    "                                ) { Text(\\"설정 저장\\") }\\n                                if (aiSettingsSaveMessage.isNotBlank()) Text(aiSettingsSaveMessage, color = if (aiSettingsSaveMessage.startsWith(\\"저장 완료\\")) CraftMint else MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)"
+)
+
 p.write_text(s, encoding="utf-8")
