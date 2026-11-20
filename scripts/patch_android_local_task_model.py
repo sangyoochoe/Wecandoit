@@ -62,8 +62,10 @@ class LocalTaskModel(private val context: Context) {
 
 main = app / "src/main/java/ai/storyteller/craftanything/MainActivity.kt"
 s = main.read_text(encoding="utf-8")
-if "import java.io.File" not in s:
-    s = s.replace("package ai.storyteller.craftanything\\n", "package ai.storyteller.craftanything\\n\\nimport java.io.File\\n", 1)
+# Use fully-qualified java.io.File in injected Activity methods to avoid import-order coupling.
+s = s.replace("suspend fun importLocalTaskModel(uri: Uri): File =", "suspend fun importLocalTaskModel(uri: Uri): java.io.File =")
+s = s.replace("val target = File(filesDir,", "val target = java.io.File(filesDir,")
+s = s.replace("val temp = File(filesDir,", "val temp = java.io.File(filesDir,")
 if "private val localTaskModel by lazy" not in s:
     s = s.replace(
         'class MainActivity : ComponentActivity() {',
