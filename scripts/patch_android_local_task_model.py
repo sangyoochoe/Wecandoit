@@ -74,13 +74,13 @@ if "private val localTaskModel by lazy" not in s:
 # Import and run model file in app-private storage. Never read a large model into a byte array.
 if "suspend fun importLocalTaskModel" not in s:
     anchor = '    private suspend fun readSelectedBytes(uri: Uri): Pair<String, ByteArray> ='
-    methods = '''    suspend fun importLocalTaskModel(uri: Uri): File = withContext(Dispatchers.IO) {
+    methods = '''    suspend fun importLocalTaskModel(uri: Uri): java.io.File = withContext(Dispatchers.IO) {
         val name = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
             if (c.moveToFirst()) c.getString(0) else null
         } ?: "model.task"
         require(name.endsWith(".task", true)) { "MediaPipe 모델(.task) 파일을 선택하세요." }
-        val target = File(filesDir, "local-model.task")
-        val temp = File(filesDir, "local-model.task.part")
+        val target = java.io.File(filesDir, "local-model.task")
+        val temp = java.io.File(filesDir, "local-model.task.part")
         contentResolver.openInputStream(uri)?.use { input ->
             temp.outputStream().buffered().use { output ->
                 val buffer = ByteArray(1024 * 1024)
