@@ -8,6 +8,10 @@ GitHub Actions builds the Android debug APK on every push and pull request, and 
 
 The workflow checks out the upstream parser source at a fixed commit so the same source revision is used for repeatable builds. It runs the upstream `craft-anything-formats` library tests before compiling the Android JNI libraries.
 
+## Android engine port status
+
+The verified upstream workflow contract, Android blockers, and implementation/test gates are documented in [docs/ANDROID_ENGINE_PORT_STATUS.md](docs/ANDROID_ENGINE_PORT_STATUS.md). The full upstream Study → Build → Check → Refine engine is not yet connected to Android; do not treat the current APK as a complete app-generation port.
+
 ## Current Android scope
 
 - Kotlin + Jetpack Compose Android application
