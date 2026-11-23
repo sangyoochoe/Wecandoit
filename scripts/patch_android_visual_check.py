@@ -98,10 +98,4 @@ p.write_text(s, encoding="utf-8")
 # Restore Kotlin string interpolation in the builder source.
 s = s.replace(chr(92) + "$", "$")
 
-# Keep AI-generated files inside the private project staging directory.
-old = 'require(path.isNotBlank() && !path.startsWith(\\'/\\') && path.split(\\'/\\').none { it == ".." || it.isBlank() }) { "잘못된 경로: $path" }'
-new = 'require(path.isNotBlank() && !path.startsWith(\\'/\\') && !path.contains(\\':\\') && path.split(\\'/\\').none { it == ".." || it == "." || it.isBlank() }) { "잘못된 경로: $path" }\\n            val safeOut = File(staging, path)\\n            require(safeOut.canonicalPath.startsWith(staging.canonicalPath + File.separator)) { "허용되지 않은 저장 경로: $path" }'
-s = s.replace(old, new)
-s = s.replace('val out = File(staging, path); out.parentFile?.mkdirs(); out.writeText(body)', 'val out = safeOut; out.parentFile?.mkdirs(); out.writeText(body)')
-
 p.write_text(s, encoding="utf-8")
