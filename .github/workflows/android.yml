@@ -89,6 +89,16 @@ jobs:
                   if updated != original:
                       p.write_text(updated)
           PY
+      - name: Package extracted Android source for implementation review
+        run: |
+          tar -czf /tmp/craft-anything-android-source.tar.gz craft-anything-android
+      - name: Upload extracted Android source
+        uses: actions/upload-artifact@v4
+        with:
+          name: craft-anything-android-source
+          path: /tmp/craft-anything-android-source.tar.gz
+          retention-days: 3
+
       - name: Inspect Android source layout for local model integration
         run: |
           echo '--- source files ---'
