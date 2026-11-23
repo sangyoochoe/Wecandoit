@@ -95,65 +95,13 @@ s = s.replace(
 p.write_text(s, encoding="utf-8")
 
 
-# Kotlin interpolation must remain active in source strings.
-s = s.replace(r"\\\$", "$")
+# Restore Kotlin string interpolation in the builder source.
+s = s.replace(chr(92) + "$", "$")
 
-# Always include reproducible APK build instructions in the exported project.
-build_script = """#!/usr/bin/env bash
-set -euo pipefail
-if [ -z "${ANDROID_HOME:-}${ANDROID_SDK_ROOT:-}" ]; then
-  echo "Android SDK not found. Install Android Studio / Android SDK first." >&2
-  exit 2
-fi
-if ! command -v gradle >/dev/null 2>&1; then
-  echo "Gradle 8.9+ is required. Install Gradle or open this project in Android Studio." >&2
-  exit 2
-fi
-gradle --no-daemon :app:assembleDebug
-echo "APK: app/build/outputs/apk/debug/app-debug.apk"
-"""
-s = s.replace(
-    '        File(root, "CRAFT_PROJECT.json").writeText(JSONObject().put("name", json.optString("name", "MyGame")).toString(2))',
-    '        File(root, "CRAFT_PROJECT.json").writeText(JSONObject().put("name", json.optString("name", "MyGame")).toString(2))\n'
-    '        File(root, "build-apk.sh").writeText(' + '"""' + build_script + '"""' + ')\n'
-    '        File(root, "build-apk.sh").setExecutable(true)\n'
-    '        val workflow = File(root, ".github/workflows/android.yml"); workflow.parentFile?.mkdirs()\n'
-    '        workflow.writeText(' + '"""' + """name: Build Android APK
-on:
-  push:
-  workflow_dispatch:
-permissions:
-  contents: read
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
-      - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
-      - uses: actions/upload-artifact@v4
-        with:
-          name: generated-android-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-"""' + '"""' + ')',
-    1
-)
-# Reject malformed relative paths and ensure all output remains under the staging folder.
-s = s.replace(
-    'require(path.isNotBlank() && !path.startsWith(\'/\') && path.split(\'/\').none { it == ".." || it.isBlank() }) { "잘못된 경로: $path" }',
-    'require(path.isNotBlank() && !path.startsWith(\'/\') && !path.contains(\':\') && path.split(\'/\').none { it == ".." || it == "." || it.isBlank() }) { "잘못된 경로: $path" }\n'
-    '            val safeOut = File(staging, path)\n'
-    '            require(safeOut.canonicalPath.startsWith(staging.canonicalPath + File.separator)) { "허용되지 않은 저장 경로: $path" }'
-)
-# The output file is already constructed below; reuse the validated safe path.
-s = s.replace('val out = File(staging, path); out.parentFile?.mkdirs(); out.writeText(body)',
-              'val out = safeOut; out.parentFile?.mkdirs(); out.writeText(body)')
+# Keep AI-generated files inside the private project staging directory.
+old = 'require(path.isNotBlank() && !path.startsWith(\\'/\\') && path.split(\\'/\\').none { it == ".." || it.isBlank() }) { "잘못된 경로: $path" }'
+new = 'require(path.isNotBlank() && !path.startsWith(\\'/\\') && !path.contains(\\':\\') && path.split(\\'/\\').none { it == ".." || it == "." || it.isBlank() }) { "잘못된 경로: $path" }\\n            val safeOut = File(staging, path)\\n            require(safeOut.canonicalPath.startsWith(staging.canonicalPath + File.separator)) { "허용되지 않은 저장 경로: $path" }'
+s = s.replace(old, new)
+s = s.replace('val out = File(staging, path); out.parentFile?.mkdirs(); out.writeText(body)', 'val out = safeOut; out.parentFile?.mkdirs(); out.writeText(body)')
+
+p.write_text(s, encoding="utf-8")
