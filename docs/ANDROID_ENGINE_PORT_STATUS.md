@@ -34,6 +34,17 @@ The workflow explicitly sets:
 
 The repository README also records that the full desktop AI agent engine is not linked and that desktop process/PTY backends need Android-specific implementations. Therefore the current app is a file-analysis Android app with AI-provider settings; it is not yet an Android implementation of Study → Build → Check → Refine.
 
+## Single Android orchestrator (implementation in progress)
+
+The generated-project action is now routed through one `CraftAgentOrchestrator`. It owns the run and sequences the specialist stages in order:
+
+1. Study sends reference evidence and user requirements as separate sections and produces an analysis brief.
+2. Build receives that brief and asks the configured AI provider for the independent Android project.
+3. Check applies the real local source-safety checks (relative paths, traversal rejection, duplicate paths, file count, and total source size) and records that this is not a Gradle/device test.
+4. Refine sends the saved project and Study brief back through the same coordinator for up to three full-source revision rounds, with a Check record after each round.
+
+The coordinator is a single controller; the stages are not independent agents. At present each stage is a separate AI chat request. The implementation does **not** yet have the upstream MCP tool loop, autonomous shell/Gradle execution, Android emulator launch, screenshot capture, or runtime-driven refinement. A source-ready result must not be interpreted as a verified APK.
+
 ## New Android-native Rust workflow core (implementation in progress)
 
 The Android build now injects `scripts/android_workflow.rs` into the extracted JNI crate and exposes three JNI calls:
