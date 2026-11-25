@@ -1,6 +1,8 @@
 name: Android APK
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -122,7 +124,7 @@ jobs:
 
       - name: Test Android Rust workflow engine
         working-directory: upstream/apps/craft-anything-android/native
-        run: cargo test --locked
+        run: cargo test
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
