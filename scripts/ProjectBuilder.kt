@@ -124,12 +124,33 @@ jobs:
         run: |
           if [ ! -f gradlew ]; then gradle wrapper --gradle-version 8.9; fi
           chmod +x gradlew
-      - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
+      - name: Build and unit-test Android project
+        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
+      - name: Install and launch on Android emulator
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          script: |
+            APK="$(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' | head -n 1)"
+            test -n "$APK"
+            APP_ID="$(grep -E 'applicationId[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*applicationId[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            if [ -z "$APP_ID" ]; then
+              APP_ID="$(grep -E 'namespace[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*namespace[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            fi
+            test -n "$APP_ID"
+            adb install "$APK"
+            adb shell monkey -p "$APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
       - uses: actions/upload-artifact@v4
         with:
-          name: generated-android-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
           if-no-files-found: error
 """
         val readme = """# Generated Android project
@@ -137,7 +158,7 @@ This project was generated from the Craft Anything Android app.
 ## Build
 Run `bash build-apk.sh` in an environment with JDK 17, Android SDK and Gradle.
 Or push this project to GitHub and run the workflow in .github/workflows/android.yml.
-A successful workflow uploads the debug APK as the generated-android-apk artifact.
+The workflow runs unit tests, builds a debug APK, installs and launches it in an Android emulator, captures a smoke-test screenshot, and uploads the APK and screenshot as generated-android-validation. This smoke test verifies launch only; it does not prove feature correctness or visual similarity.
 The app performs a structural preflight of Gradle files, Android plugin, compileSdk, namespace, Manifest launcher activity and Kotlin source. This is not a Gradle build or device test. Only a successful GitHub Actions build proves APK compilation.
 """
         File(dir, "build-apk.sh").writeText(script)
