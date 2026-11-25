@@ -17,12 +17,17 @@ lib.write_text(text, encoding="utf-8")
 bridge = root / "app/src/main/java/ai/storyteller/craftanything/NativeBridge.kt"
 k = bridge.read_text(encoding="utf-8")
 needle = "    external fun nativeStatus(): String"
-if "nativeWorkflowTransition" not in k:
-    k = k.replace(needle, needle + """
+methods = """
     external fun nativeWorkflowTransition(stateJson: String, next: String, status: String, detail: String): String
     external fun nativeWorkflowAddEvidence(stateJson: String, kind: String, source: String, summary: String, confidence: Double): String
     external fun nativeWorkflowRecordCheck(stateJson: String, checkId: String, passed: Int, score: Double, summary: String, executed: Boolean): String
-""")
+"""
+for declaration in methods.strip().splitlines():
+    declaration = declaration.strip()
+    if declaration and declaration not in k:
+        if needle not in k:
+            raise SystemExit("NativeBridge insertion point missing: " + declaration)
+        k = k.replace(needle, needle + "\\n" + declaration, 1)
 bridge.write_text(k, encoding="utf-8")
 
 workflow = root / "app/src/main/java/ai/storyteller/craftanything/CraftWorkflow.kt"
