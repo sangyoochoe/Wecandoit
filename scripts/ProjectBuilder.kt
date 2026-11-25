@@ -150,6 +150,7 @@ internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, 
     var stage by remember { mutableStateOf("대기 중") }
     var message by remember { mutableStateOf("") }
     var count by remember { mutableIntStateOf(0) }
+    var reviewRoundsCompleted by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri != null) { busy = true; activity.lifecycleScope.launch {
@@ -157,7 +158,7 @@ internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, 
             stage = if (r.isSuccess) "소스 ZIP 저장 완료" else "저장 실패: ${r.exceptionOrNull()?.message}"
         } }
     }
-    fun prompt(refine: Boolean): String {
+    fun prompt(refine: Boolean, round: Int = 1): String {
         val existing = if (refine) store.context() else "없음"
         return """너는 Craft Anything의 Android 제작 에이전트다. 아래 작업 단계를 엄격히 지켜라.
 1) Study: 참고자료에서 화면 구조, 핵심 흐름, 입력, 상태, 화면 전환, 콘텐츠를 근거와 함께 정리한다. 확인하지 못한 것은 추측하지 말고 미확인으로 표시한다.
@@ -173,6 +174,8 @@ internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, 
 분석 모드: ${if (deepAnalysis) "심층 분석" else "간편 분석"}
 독립 제작 모드: ${if (cleanRoom) "클린룸(원본 코드·리소스 복사 금지)" else "기능 아이디어 참고(복제 금지 원칙 유지)"}
 기존 프로젝트: ${existing.take(30000)}
+개선 반복: $round / 3
+이번 점검 목표: 파일 간 패키지명·Manifest·Gradle 플러그인과 의존성·진입 Activity·Compose 사용·리소스 참조를 서로 대조하고, 발견한 문제를 실제 코드에서 고친다. 빌드 로그나 기기 실행 결과가 제공되지 않았다면 컴파일·실행 성공 여부는 미확인으로 남긴다.
 Android Studio에서 열 수 있는 완전한 Kotlin + Jetpack Compose 프로젝트를 작성하라. settings.gradle.kts, build.gradle.kts, app/build.gradle.kts, app/src/main/AndroidManifest.xml, app/src/main/java/com/example/game/MainActivity.kt, README.md를 포함한다. 실제 실행 가능한 핵심 사용자 흐름, 한국어 UI, 터치 입력, 상태 관리, 오류·빈 상태, 재시작을 구현하라. TODO, 가짜 버튼, 미구현 기능을 완료된 것처럼 표현하지 마라. 외부 유료 API나 존재하지 않는 라이브러리를 쓰지 마라. build-apk.sh와 .github/workflows/android.yml도 JSON files 안에 포함해 실제 빌드 방법을 제공하라. 생성물은 최대 30개 파일·2MiB 이내로 작성하라.
 ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 문제를 고치고 전체 파일을 다시 출력하라." else "처음부터 프로젝트를 작성하라."}
 마지막에 실제로 실행하지 않은 테스트·빌드는 실행했다고 말하지 말고 README에 확인 방법을 적어라. 설명 없이 JSON 하나만 출력: {"name":"프로젝트명","files":[{"path":"상대경로","content":"파일 전체 내용"}]}. 최대 30개 파일, 총 2MiB 이내. JSON 이스케이프를 지켜라."""
@@ -212,19 +215,33 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
             }
         }, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "생성 중…" else "① AI로 새 게임 만들기") }
         Button(enabled = !busy && store.exists(), onClick = {
-            busy = true; stage = "AI가 코드를 검토하고 개선하는 중…"
-            activity.askProject(settings, prompt(true)) { response ->
-                val saved = runCatching { store.save(response) }; busy = false
-                saved.onSuccess { count = it; stage = "AI 개선본 저장 완료 · 파일 ${it}개" }
-                    .onFailure { stage = "개선 실패: ${it.message}" }
+            busy = true
+            reviewRoundsCompleted = 0
+            fun runReview(round: Int) {
+                stage = "AI 코드 점검·개선 $round/3 단계…"
+                activity.askProject(settings, prompt(true, round)) { response ->
+                    val saved = runCatching { store.save(response) }
+                    saved.onSuccess {
+                        count = it
+                        reviewRoundsCompleted = round
+                        if (round < 3) runReview(round + 1) else {
+                            busy = false
+                            stage = "AI 자체 점검 3회 완료 · 파일 $it개"
+                        }
+                    }.onFailure {
+                        busy = false
+                        stage = "개선 $round/3 실패: ${it.message}"
+                    }
+                }
             }
-        }, modifier = Modifier.fillMaxWidth()) { Text("② AI 검토 및 자동 개선") }
+            runReview(1)
+        }, modifier = Modifier.fillMaxWidth()) { Text("② AI 코드 점검·개선 3회") }
         OutlinedButton(enabled = !busy && store.exists(), onClick = { exportPicker.launch("${projectName.ifBlank { "MyGame" }}-source.zip") }, modifier = Modifier.fillMaxWidth()) { Text("③ 프로젝트 소스 ZIP 내보내기") }
         Text("현재 상태: $stage", color = MaterialTheme.colorScheme.primary)
         if (message.isNotBlank()) Text(message, style = MaterialTheme.typography.bodySmall)
         if (count > 0) {
-            Text("저장된 파일: ${count}개")
-            Text("실제 APK 빌드와 원본 화면 비교는 아직 연결되지 않았습니다. AI 코드 검토는 컴파일·기기 테스트를 의미하지 않습니다.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            Text("저장된 파일: ${count}개 · AI 자체 점검 반복: ${reviewRoundsCompleted}/3")
+            Text("AI 자체 점검은 소스 검토이며 실제 컴파일·기기 실행 테스트가 아닙니다. 내보낸 프로젝트는 build-apk.sh 또는 GitHub Actions에서 별도로 빌드해야 합니다.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
