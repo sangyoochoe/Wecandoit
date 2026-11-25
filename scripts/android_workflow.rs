@@ -2,6 +2,7 @@ use serde_json::{json, Value};
 
 const MAX_EVENTS: usize = 300;
 const MAX_EVIDENCE: usize = 500;
+const MAX_CHECKS: usize = 300;
 
 fn phase(state: &Value) -> &str {
     state.get("phase").and_then(Value::as_str).unwrap_or("IDLE")
@@ -20,9 +21,17 @@ fn allowed(current: &str, next: &str) -> bool {
 }
 
 fn push_event(state: &mut Value, kind: &str, message: &str) {
+    // Preserve monotonic sequence numbers after old events are trimmed.
+    let previous = state.get("eventSequence").and_then(Value::as_u64)
+        .or_else(|| state["events"].as_array().and_then(|items| {
+            items.iter().filter_map(|item| item["sequence"].as_u64()).max()
+        })).unwrap_or(0);
+    let sequence = previous.saturating_add(1);
+    state["eventSequence"] = json!(sequence);
+    if !state["events"].is_array() { state["events"] = json!([]); }
     let events = state["events"].as_array_mut().expect("events array initialized");
     events.push(json!({
-        "sequence": events.len() + 1,
+        "sequence": sequence,
         "type": kind,
         "message": message.chars().take(2000).collect::<String>(),
         "at": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
@@ -61,13 +70,18 @@ pub fn add_evidence(mut state: Value, kind: &str, source: &str, summary: &str, c
 
 pub fn record_check(mut state: Value, id: &str, passed: Option<bool>, score: Option<f64>, summary: &str, executed: bool) -> Value {
     if !state["checks"].is_array() { state["checks"] = json!([]); }
-    state["checks"].as_array_mut().expect("checks array initialized").push(json!({
+    let checks = state["checks"].as_array_mut().expect("checks array initialized");
+    checks.push(json!({
         "id": id.chars().take(100).collect::<String>(),
         "passed": passed,
         "score": score.filter(|v| v.is_finite()).map(|v| v.clamp(0.0, 100.0)),
         "summary": summary.chars().take(4000).collect::<String>(),
         "executed": executed
     }));
+    if checks.len() > MAX_CHECKS {
+        let excess = checks.len() - MAX_CHECKS;
+        checks.drain(0..excess);
+    }
     push_event(&mut state, "CHECK_RECORDED", summary);
     state
 }
@@ -102,6 +116,29 @@ mod tests {
         let state = add_evidence(state("STUDY"), "x", "y", &"a".repeat(13000), 2.0);
         assert_eq!(state["evidence"][0]["summary"].as_str().unwrap().len(), 12000);
         assert_eq!(state["evidence"][0]["confidence"], 1.0);
+    }
+
+    #[test]
+    fn event_sequences_remain_monotonic_after_history_is_trimmed() {
+        let mut value = state("STUDY");
+        for index in 0..(MAX_EVENTS + 7) {
+            push_event(&mut value, "TEST", &index.to_string());
+        }
+        assert_eq!(value["events"].as_array().unwrap().len(), MAX_EVENTS);
+        assert_eq!(value["events"][0]["sequence"], 8);
+        assert_eq!(value["events"][MAX_EVENTS - 1]["sequence"], MAX_EVENTS as u64 + 7);
+        assert_eq!(value["eventSequence"], MAX_EVENTS as u64 + 7);
+    }
+
+    #[test]
+    fn check_history_is_bounded_and_keeps_the_latest_result() {
+        let mut value = state("CHECK");
+        for index in 0..(MAX_CHECKS + 5) {
+            value = record_check(value, &index.to_string(), None, None, "not executed", false);
+        }
+        assert_eq!(value["checks"].as_array().unwrap().len(), MAX_CHECKS);
+        assert_eq!(value["checks"][0]["id"], "5");
+        assert_eq!(value["checks"][MAX_CHECKS - 1]["id"], (MAX_CHECKS + 4).to_string());
     }
 }
 
