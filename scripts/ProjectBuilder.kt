@@ -143,6 +143,9 @@ AI source review is not a build or device test. Only a successful build workflow
 internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, referenceName: String, referenceEvidence: String, onSettings: () -> Unit) {
     val store = remember(activity) { GeneratedProjectStore(activity) }
     val workflow = remember(activity) { CraftWorkflowStore(activity) }
+    val orchestrator = remember(activity, workflow, store) {
+        CraftAgentOrchestrator(workflow, { p, callback -> activity.askProject(settings, p, callback) }, store::save)
+    }
     var request by remember { mutableStateOf("참고 게임의 진행 방식은 참고하되 캐릭터와 배경은 새롭게 만들고 모바일 세로 화면에 맞춰 주세요.") }
     var referenceNotes by remember { mutableStateOf("") }
     var deepAnalysis by remember { mutableStateOf(true) }
@@ -209,15 +212,44 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
         Button(enabled = !busy && request.isNotBlank(), onClick = {
             if (settings.model.isBlank()) { stage = "AI 모델을 설정하세요."; return@Button }
             busy = true
+            message = ""
             workflow.begin(referenceName, referenceEvidence + "\\n" + referenceNotes)
-            workflow.transition(CraftWorkflowStore.Phase.BUILD, "AI가 프로젝트 코드를 작성하는 중")
-            stage = workflow.snapshot().optString("status")
-            activity.askProject(settings, prompt(false)) { response ->
-                val saved = runCatching { store.save(response) }; busy = false
-                saved.onSuccess { count = it; workflow.transition(CraftWorkflowStore.Phase.CHECK, "생성 소스 기본 점검 완료", "파일 경로·중복·크기 검증 완료. Gradle 빌드는 미실행."); workflow.recordCheck(CraftWorkflowStore.CheckResult("source_safety", true, null, "파일 경로·중복·크기 검증 통과. Gradle 컴파일 및 앱 실행은 미실행.", false)); workflow.transition(CraftWorkflowStore.Phase.SOURCE_READY, "소스 생성 완료 · 빌드 미검증", "APK 빌드 및 기기 실행은 아직 확인되지 않음."); stage = "프로젝트 파일 ${it}개 생성 · 소스 점검 완료"; message = "소스 생성 완료. 실제 APK 빌드와 기기 실행은 아직 검증되지 않았습니다." }
-                    .onFailure { workflow.fail("생성 결과 저장 실패: ${it.message}"); stage = "생성 결과 저장 실패: ${it.message}"; message = response.take(2000) }
-            }
-        }, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "생성 중…" else "① AI로 새 게임 만들기") }
+            val studyPrompt = """너는 단일 Craft Anything 오케스트레이터가 지휘하는 Study 전문가다.
+참고자료와 사용자 요구사항을 섞지 말고 분리해서 분석하라.
+참고자료 이름: ${referenceName.ifBlank { "없음" }}
+참고자료에서 실제로 관찰된 정보: ${referenceEvidence.take(if (deepAnalysis) 24000 else 10000)}
+사용자가 추가한 참고 설명: $referenceNotes
+사용자의 새 기능 요구사항(참고자료가 아님): $request
+분석 모드: ${if (deepAnalysis) "심층 분석" else "간편 분석"}
+클린룸: ${if (cleanRoom) "원본 코드·이미지·상표 복사 금지" else "기능 아이디어만 참고, 복제 금지"}
+화면 구조, 핵심 흐름, 입력, 상태, 전환, 콘텐츠 유형, 반응형 특성을 근거별로 정리하라.
+확인하지 못한 사실은 미확인으로 남기고 코드나 기능을 추측하지 마라.
+다음 Build 단계가 사용할 간결한 요구사항 명세로 작성하라."""
+            orchestrator.create(
+                studyPrompt = studyPrompt,
+                buildPrompt = { notes -> prompt(false) + "\\n\\nStudy 분석 결과(참고자료에서 확인한 근거):\\n" + notes.take(16000) },
+                reviewPrompt = { existing, notes, round ->
+                    prompt(true, round) + "\\n\\n오케스트레이터 Study 결과:\\n" + notes.take(12000) +
+                        "\\n\\n현재 프로젝트 파일:\\n" + existing.take(30000)
+                },
+                reviewRounds = 3,
+                onStage = { stage = it },
+                onComplete = { result ->
+                    busy = false
+                    result.onSuccess {
+                        count = it.fileCount
+                        reviewRoundsCompleted = it.reviewRounds
+                        stage = "Study·Build·Check·Refine 완료 · 소스 ${it.fileCount}개 · 실제 빌드 미검증"
+                        message = "단일 오케스트레이터가 4단계를 순서대로 진행했습니다. 소스 구조 검사는 통과했지만 Gradle 빌드와 기기 실행은 아직 하지 않았습니다."
+                    }.onFailure {
+                        stage = "에이전트 실행 실패: ${it.message}"
+                        message = it.message ?: "실행 실패"
+                    }
+                }
+            )
+        }, modifier = Modifier.fillMaxWidth()) {
+            Text(if (busy) "오케스트레이터 실행 중…" else "① Study → Build → Check → Refine 실행")
+        }
         Button(enabled = !busy && store.exists(), onClick = {
             busy = true
             reviewRoundsCompleted = 0
