@@ -104,3 +104,70 @@ mod tests {
         assert_eq!(state["evidence"][0]["confidence"], 1.0);
     }
 }
+
+use jni::objects::{JClass, JString};
+use jni::sys::{jboolean, jdouble, jint, jstring, JNI_FALSE};
+use jni::JNIEnv;
+
+fn java_string(env: &mut JNIEnv, value: &str) -> jstring {
+    env.new_string(value).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_ai_storyteller_craftanything_NativeBridge_nativeWorkflowTransition(
+    mut env: JNIEnv,
+    _class: JClass,
+    jstate: JString,
+    jnext: JString,
+    jstatus: JString,
+    jdetail: JString,
+) -> jstring {
+    let read = |env: &mut JNIEnv, value: &JString| -> Result<String, String> {
+        env.get_string(value).map(|s| s.to_string_lossy().into_owned()).map_err(|e| e.to_string())
+    };
+    let result = (|| -> Result<serde_json::Value, String> {
+        let state_text = read(&mut env, &jstate)?;
+        let next = read(&mut env, &jnext)?;
+        let status = read(&mut env, &jstatus)?;
+        let detail = read(&mut env, &jdetail)?;
+        if state_text.len() > 512 * 1024 { return Err("Workflow state exceeds 512 KiB".into()); }
+        let state: serde_json::Value = serde_json::from_str(&state_text).map_err(|e| e.to_string())?;
+        transition(state, &next, &status, &detail)
+    })();
+    let payload = match result {
+        Ok(state) => json!({"ok":true,"state":state}).to_string(),
+        Err(error) => json!({"ok":false,"error":error}).to_string(),
+    };
+    java_string(&mut env, &payload)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_ai_storyteller_craftanything_NativeBridge_nativeWorkflowRecordCheck(
+    mut env: JNIEnv,
+    _class: JClass,
+    jstate: JString,
+    jid: JString,
+    jpassed: jint,
+    jscore: jdouble,
+    jsummary: JString,
+    jexecuted: jboolean,
+) -> jstring {
+    let read = |env: &mut JNIEnv, value: &JString| -> Result<String, String> {
+        env.get_string(value).map(|s| s.to_string_lossy().into_owned()).map_err(|e| e.to_string())
+    };
+    let result = (|| -> Result<serde_json::Value, String> {
+        let state_text = read(&mut env, &jstate)?;
+        let id = read(&mut env, &jid)?;
+        let summary = read(&mut env, &jsummary)?;
+        if state_text.len() > 512 * 1024 { return Err("Workflow state exceeds 512 KiB".into()); }
+        let state: serde_json::Value = serde_json::from_str(&state_text).map_err(|e| e.to_string())?;
+        let passed = match jpassed { -1 => None, 0 => Some(false), 1 => Some(true), _ => return Err("Invalid check pass value".into()) };
+        let score = if jscore.is_finite() { Some(jscore) } else { None };
+        Ok(record_check(state, &id, passed, score, &summary, jexecuted != JNI_FALSE))
+    })();
+    let payload = match result {
+        Ok(state) => json!({"ok":true,"state":state}).to_string(),
+        Err(error) => json!({"ok":false,"error":error}).to_string(),
+    };
+    java_string(&mut env, &payload)
+}
