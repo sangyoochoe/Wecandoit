@@ -39,7 +39,7 @@ if 'fun askProject(' not in s:
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    val system = "You are Craft Anything's Android project builder. Generate complete, safe, independent source projects from user requirements. Return only the exact JSON format requested by the user, never claim that code was compiled or tested unless a build actually ran. Do not execute or copy proprietary target code."
+                    val system = "You are the single Craft Anything Android orchestrator executing one specialist stage at a time. Follow the output format requested in the user prompt: Study returns a factual analysis brief; Build and Refine return the requested complete project JSON. Never claim that code was compiled or tested unless a build actually ran. Do not execute or copy proprietary target code."
                     AiChatClient(settings, { _, _ -> error("프로젝트 생성에는 분석 도구 호출을 허용하지 않습니다.") }, false)
                         .ask(prompt, "", system)
                 }.getOrElse { "AI 프로젝트 생성 실패: ${it.message ?: "알 수 없는 오류"}" }
