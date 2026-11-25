@@ -44,6 +44,7 @@ private class GeneratedProjectStore(private val activity: MainActivity) {
             out.parentFile?.mkdirs()
             out.writeText(body)
         }
+        validateAndroidProject(staging)
         writeBuildSupport(staging)
         val manifest = JSONObject()
             .put("name", json.optString("name", "MyGame"))
@@ -62,6 +63,30 @@ private class GeneratedProjectStore(private val activity: MainActivity) {
         backup.deleteRecursively()
         return seen.size
     }
+    /** Structural preflight only; this does not claim a successful Gradle build. */
+    private fun validateAndroidProject(dir: File) {
+        fun required(path: String): String {
+            val file = File(dir, path)
+            require(file.isFile && file.length() > 0L) { "필수 파일이 없습니다: $path" }
+            return file.readText()
+        }
+        val settings = required("settings.gradle.kts")
+        val rootBuild = required("build.gradle.kts")
+        val appBuild = required("app/build.gradle.kts")
+        val manifest = required("app/src/main/AndroidManifest.xml")
+        require(Regex("include\\s*\\(.*app").containsMatchIn(settings)) { "settings.gradle.kts에 app 모듈이 없습니다." }
+        require(Regex("com\\.android\\.application").containsMatchIn(rootBuild + "\\n" + appBuild)) { "Android application Gradle 플러그인이 없습니다." }
+        require(Regex("compileSdk\\s*(=\\s*)?\\d+").containsMatchIn(appBuild)) { "compileSdk 설정이 없습니다." }
+        require(Regex("namespace\\s*=\\s*\"[A-Za-z_][A-Za-z0-9_.]*\"").containsMatchIn(appBuild)) { "유효한 namespace가 없습니다." }
+        require(Regex("<manifest\\b").containsMatchIn(manifest) && Regex("<application\\b").containsMatchIn(manifest)) { "Manifest에 manifest/application 선언이 없습니다." }
+        require(Regex("<activity[\\s\\S]*?android:name=\"[^\"]+\"").containsMatchIn(manifest)) { "Manifest에 Activity 진입점이 없습니다." }
+        require(Regex("<action[^>]+android:name=\"android.intent.action.MAIN\"").containsMatchIn(manifest) && Regex("<category[^>]+android:name=\"android.intent.category.LAUNCHER\"").containsMatchIn(manifest)) { "Manifest에 MAIN/LAUNCHER 실행 인텐트가 없습니다." }
+        val sourceRoot = File(dir, "app/src/main")
+        val kotlinFiles = sourceRoot.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+        require(kotlinFiles.isNotEmpty()) { "app/src/main 아래 Kotlin 소스가 없습니다." }
+        require(kotlinFiles.any { it.relativeTo(sourceRoot).invariantSeparatorsPath.startsWith("java/") }) { "app/src/main/java 아래 Kotlin 진입 소스가 없습니다." }
+        require(kotlinFiles.none { it.length() == 0L }) { "비어 있는 Kotlin 소스 파일이 있습니다." }
+    }
     private fun writeBuildSupport(dir: File) {
         val script = """#!/usr/bin/env bash
 set -euo pipefail
@@ -69,11 +94,11 @@ if [ ! -f settings.gradle.kts ] || [ ! -f app/build.gradle.kts ]; then
   echo "Android Gradle 프로젝트 파일이 없습니다." >&2
   exit 2
 fi
-if [ -x ./gradlew ]; then
-  ./gradlew --no-daemon assembleDebug
-else
-  gradle --no-daemon assembleDebug
+if [ ! -x ./gradlew ]; then
+  echo "Gradle wrapper가 없습니다. GitHub Actions 빌드를 사용하세요." >&2
+  exit 3
 fi
+./gradlew --no-daemon assembleDebug
 find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -print
 """
         val workflow = """name: Build generated Android project
@@ -113,7 +138,7 @@ This project was generated from the Craft Anything Android app.
 Run `bash build-apk.sh` in an environment with JDK 17, Android SDK and Gradle.
 Or push this project to GitHub and run the workflow in .github/workflows/android.yml.
 A successful workflow uploads the debug APK as the generated-android-apk artifact.
-AI source review is not a build or device test. Only a successful build workflow proves APK compilation.
+The app performs a structural preflight of Gradle files, Android plugin, compileSdk, namespace, Manifest launcher activity and Kotlin source. This is not a Gradle build or device test. Only a successful GitHub Actions build proves APK compilation.
 """
         File(dir, "build-apk.sh").writeText(script)
         File(dir, "build-apk.sh").setExecutable(true)
