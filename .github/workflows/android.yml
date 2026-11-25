@@ -155,6 +155,10 @@ jobs:
         working-directory: upstream/apps/craft-anything-android
         run: gradle wrapper --gradle-version 8.9
 
+      - name: Compile Android Kotlin without producing APK
+        working-directory: upstream/apps/craft-anything-android
+        run: ./gradlew --no-daemon :app:compileDebugKotlin
+
       - name: Build debug APK
         if: github.event_name == 'workflow_dispatch'
         working-directory: upstream/apps/craft-anything-android
