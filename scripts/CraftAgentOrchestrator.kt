@@ -24,20 +24,20 @@ internal class CraftAgentOrchestrator(
     ) {
         require(reviewRounds in 0..3) { "개선 반복은 0~3회까지 허용됩니다." }
         onStage("Study · 참고자료 분석")
-        ask(studyPrompt) { study ->
+        ask(studyPrompt) studyResult@ { study ->
             if (study.startsWith("AI 프로젝트 생성 실패:")) {
-                fail(study, onComplete); return@ask
+                fail(study, onComplete); return@studyResult
             }
             runCatching {
                 workflow.addEvidence("study_notes", "study-agent", study, 0.55)
                 workflow.transition(CraftWorkflowStore.Phase.BUILD, "Build · 새 프로젝트 생성")
-            }.onFailure { fail(it.message ?: "Study 단계 저장 실패", onComplete); return@ask }
+            }.onFailure { fail(it.message ?: "Study 단계 저장 실패", onComplete); return@buildResult }
             onStage("Build · 독립 프로젝트 생성")
-            ask(buildPrompt(study)) { generated ->
+            ask(buildPrompt(study)) buildResult@ { generated ->
                 val initialCount = runCatching { saveProject(generated) }
                 if (initialCount.isFailure) {
                     fail(initialCount.exceptionOrNull()?.message ?: "프로젝트 저장 실패", onComplete)
-                    return@ask
+                    return@reviewResult
                 }
                 runCatching {
                     workflow.transition(CraftWorkflowStore.Phase.CHECK, "Check · 소스 구조 검사")
@@ -74,7 +74,7 @@ internal class CraftAgentOrchestrator(
             workflow.transition(CraftWorkflowStore.Phase.REFINE, "Refine · AI 개선 $round/$limit")
         }.onFailure { fail(it.message ?: "개선 단계 전환 실패", onComplete); return }
         onStage("Refine · AI 개선 $round/$limit")
-        ask(reviewPrompt(buildContext, study, round)) { revised ->
+        ask(reviewPrompt(buildContext, study, round)) reviewResult@ { revised ->
             val count = runCatching { saveProject(revised) }
             if (count.isFailure) {
                 fail(count.exceptionOrNull()?.message ?: "개선 결과 저장 실패", onComplete)
