@@ -20,7 +20,7 @@ needle = "    external fun nativeStatus(): String"
 if "nativeWorkflowTransition" not in k:
     k = k.replace(needle, needle + """
     external fun nativeWorkflowTransition(stateJson: String, next: String, status: String, detail: String): String
-    external fun nativeWorkflowRecordCheck(stateJson: String, checkId: String, passed: Boolean?, score: Double?, summary: String, executed: Boolean): String
+    external fun nativeWorkflowRecordCheck(stateJson: String, checkId: String, passed: Int, score: Double, summary: String, executed: Boolean): String
 """)
 bridge.write_text(k, encoding="utf-8")
 
@@ -44,7 +44,7 @@ if workflow.exists():
         event("CHECK_RECORDED", result.summary)
         save()'''
     new_check = '''        val native = JSONObject(NativeBridge.nativeWorkflowRecordCheck(
-            data.toString(), result.checkId, result.passed, result.score, result.summary, result.executed
+            data.toString(), result.checkId, result.passed?.let { if (it) 1 else 0 } ?: -1, result.score ?: Double.NaN, result.summary, result.executed
         ))
         require(native.optBoolean("ok")) { native.optString("error", "Rust 검사 기록 실패") }
         data = native.getJSONObject("state")
