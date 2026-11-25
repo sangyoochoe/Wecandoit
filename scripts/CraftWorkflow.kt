@@ -42,7 +42,10 @@ internal class CraftWorkflowStore(context: Context) {
         save()
     }
     fun addEvidence(kind: String, source: String, summary: String, confidence: Double) = synchronized(lock) {
-        addEvidenceInternal(kind, source, summary, confidence); save()
+        val native = JSONObject(NativeBridge.nativeWorkflowAddEvidence(data.toString(), kind, source, summary, confidence))
+        require(native.optBoolean("ok")) { native.optString("error", "Rust 근거 기록 실패") }
+        data = native.getJSONObject("state")
+        save()
     }
     private fun addEvidenceInternal(kind: String, source: String, summary: String, confidence: Double) {
         val a = data.optJSONArray("evidence") ?: JSONArray().also { data.put("evidence", it) }
