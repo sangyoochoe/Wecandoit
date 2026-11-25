@@ -77,8 +77,10 @@ internal class CraftWorkflowStore(context: Context) {
         require(current == Phase.SOURCE_READY || current == Phase.READY || current == Phase.CHECK) {
             "소스 검토가 끝난 프로젝트만 개선할 수 있습니다."
         }
-        data.put("phase", Phase.REFINE.name).put("status", status)
-        event("REFINEMENT_STARTED", status); save()
+        val native = JSONObject(NativeBridge.nativeWorkflowTransition(data.toString(), Phase.REFINE.name, status, "AI 소스 개선 단계 시작"))
+        require(native.optBoolean("ok")) { native.optString("error", "Rust 개선 단계 전환 실패") }
+        data = native.getJSONObject("state")
+        save()
     }
 
     /** Records the exact check and whether it was actually executed. */
