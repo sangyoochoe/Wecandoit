@@ -204,7 +204,7 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
                 Checkbox(checked = cleanRoom, onCheckedChange = { cleanRoom = it })
                 Text("클린룸 제작 (원본 코드·이미지 복사 금지)")
             }
-        }
+        } }
         OutlinedButton(onClick = onSettings, modifier = Modifier.fillMaxWidth()) { Text("AI 연결 설정") }
         Button(enabled = !busy && request.isNotBlank(), onClick = {
             if (settings.model.isBlank()) { stage = "AI 모델을 설정하세요."; return@Button }
@@ -233,7 +233,7 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
                         if (round < 3) runReview(round + 1) else {
                             busy = false
                             workflow.transition(CraftWorkflowStore.Phase.CHECK, "AI 자체 점검 3회 완료", "정적 소스 검토만 완료. 실제 Gradle 빌드 및 기기 실행은 미실행."); workflow.recordCheck(CraftWorkflowStore.CheckResult("ai_source_review", null, null, "AI 자체 소스 검토 3회 완료. 빌드·기기 실행은 미검증.", false)); workflow.transition(CraftWorkflowStore.Phase.SOURCE_READY, "소스 검토 완료 · 빌드 미검증", "APK 빌드와 실제 실행은 별도 검증 필요.")
-                            stage = "AI 자체 점검 3회 완료 · 파일 $it개 (실제 빌드 미실행)"
+                            stage = "AI 자체 점검 3회 완료 · 파일 ${it}개 (실제 빌드 미실행)"
                         }
                     }.onFailure {
                         busy = false
