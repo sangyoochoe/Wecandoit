@@ -27,7 +27,7 @@ for declaration in methods.strip().splitlines():
     if declaration and declaration not in k:
         if needle not in k:
             raise SystemExit("NativeBridge insertion point missing: " + declaration)
-        k = k.replace(needle, needle + "\\n" + declaration, 1)
+        k = k.replace(needle, needle + "\n" + declaration, 1)
 bridge.write_text(k, encoding="utf-8")
 
 workflow = root / "app/src/main/java/ai/storyteller/craftanything/CraftWorkflow.kt"
