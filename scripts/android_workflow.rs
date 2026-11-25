@@ -9,8 +9,8 @@ fn phase(state: &Value) -> &str {
 
 fn allowed(current: &str, next: &str) -> bool {
     match current {
-        "IDLE" | "SOURCE_READY" | "READY" | "FAILED" | "PAUSED" =>
-            next == "STUDY",
+        "IDLE" | "FAILED" | "PAUSED" => next == "STUDY",
+        "SOURCE_READY" | "READY" => matches!(next, "STUDY" | "REFINE"),
         "STUDY" => matches!(next, "BUILD" | "FAILED" | "PAUSED"),
         "BUILD" => matches!(next, "CHECK" | "FAILED" | "PAUSED"),
         "CHECK" => matches!(next, "REFINE" | "SOURCE_READY" | "READY" | "FAILED" | "PAUSED"),
