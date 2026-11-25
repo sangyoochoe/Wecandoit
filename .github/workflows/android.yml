@@ -152,7 +152,7 @@ jobs:
         working-directory: upstream/apps/craft-anything-android
         env:
           CRAFT_ANDROID_WITH_UPSTREAM_FORMATS: '1'
-          CRAFT_ANDROID_WITH_UPSTREAM_ENGINE: '0'
+          CRAFT_ANDROID_WITH_UPSTREAM_ENGINE: '1'
         run: ./native/build-android.sh
 
       - name: Set up Gradle
