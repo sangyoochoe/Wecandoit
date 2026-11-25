@@ -228,9 +228,8 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
             orchestrator.create(
                 studyPrompt = studyPrompt,
                 buildPrompt = { notes -> prompt(false) + "\\n\\nStudy 분석 결과(참고자료에서 확인한 근거):\\n" + notes.take(16000) },
-                reviewPrompt = { existing, notes, round ->
-                    prompt(true, round) + "\\n\\n오케스트레이터 Study 결과:\\n" + notes.take(12000) +
-                        "\\n\\n현재 프로젝트 파일:\\n" + existing.take(30000)
+                reviewPrompt = { _, notes, round ->
+                    prompt(true, round) + "\\n\\n오케스트레이터 Study 결과:\\n" + notes.take(12000)
                 },
                 reviewRounds = 3,
                 onStage = { stage = it },
