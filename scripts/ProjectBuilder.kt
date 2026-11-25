@@ -74,6 +74,20 @@ private class GeneratedProjectStore(private val activity: MainActivity) {
         val rootBuild = required("build.gradle.kts")
         val appBuild = required("app/build.gradle.kts")
         val manifest = required("app/src/main/AndroidManifest.xml")
+        val launcherIcon = Regex("android:icon\\s*=\\s*\"@mipmap/([A-Za-z0-9_]+)\"").find(manifest)?.groupValues?.get(1)
+            ?: error("Manifest의 android:icon이 @mipmap 리소스를 가리키지 않습니다.")
+        val iconXmlFile = File(dir, "app/src/main/res/mipmap-anydpi-v26/$launcherIcon.xml")
+        require(iconXmlFile.isFile && iconXmlFile.length() > 0L) { "Android adaptive launcher icon XML이 없습니다." }
+        val iconXml = iconXmlFile.readText()
+        require(Regex("<adaptive-icon\\b").containsMatchIn(iconXml) && Regex("<foreground\\b").containsMatchIn(iconXml) && Regex("<background\\b").containsMatchIn(iconXml)) { "런처 아이콘은 foreground/background를 분리한 adaptive-icon이어야 합니다." }
+        val foregroundRef = Regex("android:drawable\\s*=\\s*\"@drawable/([A-Za-z0-9_]+)\"").find(iconXml)?.groupValues?.get(1)
+            ?: error("적응형 아이콘 foreground drawable이 없습니다.")
+        val foreground = File(dir, "app/src/main/res/drawable/$foregroundRef.xml")
+        require(foreground.isFile && Regex("<vector\\b").containsMatchIn(foreground.readText())) { "런처 아이콘 foreground는 VectorDrawable이어야 합니다." }
+        val backgroundRef = Regex("<background[^>]*android:drawable\\s*=\\s*\"@color/([A-Za-z0-9_]+)\"").find(iconXml)?.groupValues?.get(1)
+            ?: error("적응형 아이콘 background color가 없습니다.")
+        val valuesDir = File(dir, "app/src/main/res/values")
+        require(valuesDir.listFiles()?.filter { it.extension == "xml" }?.any { Regex("<color\\s+name=\"$backgroundRef\"").containsMatchIn(it.readText()) } == true) { "런처 아이콘 배경색 리소스가 없습니다: $backgroundRef" }
         require(Regex("include\\s*\\(.*app").containsMatchIn(settings)) { "settings.gradle.kts에 app 모듈이 없습니다." }
         require(Regex("com\\.android\\.application").containsMatchIn(rootBuild + "\\n" + appBuild)) { "Android application Gradle 플러그인이 없습니다." }
         require(Regex("compileSdk\\s*(=\\s*)?\\d+").containsMatchIn(appBuild)) { "compileSdk 설정이 없습니다." }
@@ -226,6 +240,7 @@ internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, 
 기존 프로젝트: ${existing.take(30000)}
 개선 반복: $round / 3
 이번 점검 목표: 파일 간 패키지명·Manifest·Gradle 플러그인과 의존성·진입 Activity·Compose 사용·리소스 참조를 서로 대조하고, 발견한 문제를 실제 코드에서 고친다. 빌드 로그나 기기 실행 결과가 제공되지 않았다면 컴파일·실행 성공 여부는 미확인으로 남긴다.
+아이콘 설계 규칙: 앱 아이콘을 프로젝트마다 기본 템플릿이나 임의의 로봇·별·문자 아이콘으로 재사용하지 마라. Study에서 파악한 앱의 핵심 목적, 주요 사용자 행동, 장르·업무 맥락, 시각적 분위기와 선택한 UI 스타일(색상, 형태 언어, 대비, 모서리, 밀도)을 바탕으로 이 프로젝트만의 아이콘 콘셉트를 먼저 정하고 README에 디자인 근거를 기록하라. 작은 크기에서도 알아볼 수 있는 단일 상징 중심으로 단순화하고 전경과 배경의 대비, adaptive icon 안전 영역을 지켜라. 앱 내부 아이콘도 같은 형태 언어와 선 굵기·모서리 규칙을 따르고 기능 의미와 맞는 아이콘을 사용하라. 외부 상표나 기존 앱 로고를 모방하지 마라. 반드시 app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml, app/src/main/res/drawable/ic_launcher_foreground.xml(VectorDrawable), app/src/main/res/values/ic_launcher_background.xml(color resource)을 만들고 Manifest의 android:icon이 해당 adaptive icon을 참조하게 하라. round icon을 별도 지정하면 같은 콘셉트로 제공하라.
 Android Studio에서 열 수 있는 완전한 Kotlin + Jetpack Compose 프로젝트를 작성하라. settings.gradle.kts, build.gradle.kts, app/build.gradle.kts, app/src/main/AndroidManifest.xml, app/src/main/java/com/example/game/MainActivity.kt, README.md를 포함한다. 실제 실행 가능한 핵심 사용자 흐름, 한국어 UI, 터치 입력, 상태 관리, 오류·빈 상태, 재시작을 구현하라. TODO, 가짜 버튼, 미구현 기능을 완료된 것처럼 표현하지 마라. 외부 유료 API나 존재하지 않는 라이브러리를 쓰지 마라. build-apk.sh와 .github/workflows/android.yml도 JSON files 안에 포함해 실제 빌드 방법을 제공하라. 생성물은 최대 30개 파일·2MiB 이내로 작성하라.
 ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 문제를 고치고 전체 파일을 다시 출력하라." else "처음부터 프로젝트를 작성하라."}
 마지막에 실제로 실행하지 않은 테스트·빌드는 실행했다고 말하지 말고 README에 확인 방법을 적어라. 설명 없이 JSON 하나만 출력: {"name":"프로젝트명","files":[{"path":"상대경로","content":"파일 전체 내용"}]}. 최대 30개 파일, 총 2MiB 이내. JSON 이스케이프를 지켜라."""
