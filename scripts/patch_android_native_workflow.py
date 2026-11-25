@@ -20,6 +20,7 @@ needle = "    external fun nativeStatus(): String"
 if "nativeWorkflowTransition" not in k:
     k = k.replace(needle, needle + """
     external fun nativeWorkflowTransition(stateJson: String, next: String, status: String, detail: String): String
+    external fun nativeWorkflowAddEvidence(stateJson: String, kind: String, source: String, summary: String, confidence: Double): String
     external fun nativeWorkflowRecordCheck(stateJson: String, checkId: String, passed: Int, score: Double, summary: String, executed: Boolean): String
 """)
 bridge.write_text(k, encoding="utf-8")
