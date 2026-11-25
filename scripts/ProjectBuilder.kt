@@ -73,6 +73,20 @@ private class GeneratedProjectStore(private val activity: MainActivity) {
         val settings = required("settings.gradle.kts")
         val rootBuild = required("build.gradle.kts")
         val appBuild = required("app/build.gradle.kts")
+        require(Regex("testInstrumentationRunner\\s*=\\s*\"androidx\\.test\\.runner\\.AndroidJUnitRunner\"").containsMatchIn(appBuild)) {
+            "아이콘 시각 검사를 위한 AndroidJUnitRunner 설정이 없습니다."
+        }
+        require(Regex("androidx\\.test:runner").containsMatchIn(appBuild) &&
+            Regex("androidx\\.test\\.ext:junit").containsMatchIn(appBuild)) {
+            "아이콘 계측 테스트용 AndroidX Test 의존성이 없습니다."
+        }
+        val iconTest = File(dir, "app/src/androidTest")
+        val iconTestFiles = iconTest.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+        require(iconTestFiles.any { file ->
+            val body = file.readText()
+            body.contains("LauncherIconRenderingTest") && body.contains("getApplicationIcon") &&
+                body.contains("Bitmap") && body.contains("icon-review")
+        }) { "실제 앱 아이콘을 32/40/48dp로 렌더링하는 LauncherIconRenderingTest가 없습니다." }
         val manifest = required("app/src/main/AndroidManifest.xml")
         val launcherIcon = Regex("android:icon\\s*=\\s*\"@mipmap/([A-Za-z0-9_]+)\"").find(manifest)?.groupValues?.get(1)
             ?: error("Manifest의 android:icon이 @mipmap 리소스를 가리키지 않습니다.")
