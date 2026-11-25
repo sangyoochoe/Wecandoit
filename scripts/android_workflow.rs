@@ -171,3 +171,32 @@ pub extern "system" fn Java_ai_storyteller_craftanything_NativeBridge_nativeWork
     };
     java_string(&mut env, &payload)
 }
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_ai_storyteller_craftanything_NativeBridge_nativeWorkflowAddEvidence(
+    mut env: JNIEnv,
+    _class: JClass,
+    jstate: JString,
+    jkind: JString,
+    jsource: JString,
+    jsummary: JString,
+    jconfidence: jdouble,
+) -> jstring {
+    let read = |env: &mut JNIEnv, value: &JString| -> Result<String, String> {
+        env.get_string(value).map(|s| s.to_string_lossy().into_owned()).map_err(|e| e.to_string())
+    };
+    let result = (|| -> Result<serde_json::Value, String> {
+        let state_text = read(&mut env, &jstate)?;
+        let kind = read(&mut env, &jkind)?;
+        let source = read(&mut env, &jsource)?;
+        let summary = read(&mut env, &jsummary)?;
+        if state_text.len() > 512 * 1024 { return Err("Workflow state exceeds 512 KiB".into()); }
+        let state: serde_json::Value = serde_json::from_str(&state_text).map_err(|e| e.to_string())?;
+        Ok(add_evidence(state, &kind, &source, &summary, jconfidence))
+    })();
+    let payload = match result {
+        Ok(state) => json!({"ok":true,"state":state}).to_string(),
+        Err(error) => json!({"ok":false,"error":error}).to_string(),
+    };
+    java_string(&mut env, &payload)
+}
