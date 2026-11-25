@@ -62,3 +62,14 @@ if workflow.exists():
         raise SystemExit("Kotlin check-record anchor missing; refusing a partial patch")
 
     workflow.write_text(k, encoding="utf-8")
+
+# Fail the CI patch step if any of the three Kotlin entry points is not wired to Rust.
+generated = workflow.read_text(encoding="utf-8") if workflow.exists() else ""
+required = (
+    "NativeBridge.nativeWorkflowTransition(data.toString(), next.name",
+    "NativeBridge.nativeWorkflowAddEvidence(data.toString()",
+    "NativeBridge.nativeWorkflowRecordCheck(",
+)
+missing = [needle for needle in required if needle not in generated]
+if missing:
+    raise SystemExit("Rust JNI workflow wiring incomplete: " + ", ".join(missing))
