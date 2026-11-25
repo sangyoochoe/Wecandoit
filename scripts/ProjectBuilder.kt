@@ -214,14 +214,14 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
             stage = workflow.snapshot().optString("status")
             activity.askProject(settings, prompt(false)) { response ->
                 val saved = runCatching { store.save(response) }; busy = false
-                saved.onSuccess { count = it; workflow.transition(CraftWorkflowStore.Phase.CHECK, "생성 소스 기본 점검 완료", "파일 경로·중복·크기 검증 완료. Gradle 빌드는 미실행."); stage = "프로젝트 파일 ${it}개 생성 · 소스 점검 완료"; message = "소스 생성 완료. 실제 APK 빌드는 아직 실행되지 않았습니다." }
+                saved.onSuccess { count = it; workflow.transition(CraftWorkflowStore.Phase.CHECK, "생성 소스 기본 점검 완료", "파일 경로·중복·크기 검증 완료. Gradle 빌드는 미실행."); workflow.recordCheck(CraftWorkflowStore.CheckResult("source_safety", true, null, "파일 경로·중복·크기 검증 통과. Gradle 컴파일 및 앱 실행은 미실행.", false)); workflow.transition(CraftWorkflowStore.Phase.SOURCE_READY, "소스 생성 완료 · 빌드 미검증", "APK 빌드 및 기기 실행은 아직 확인되지 않음."); stage = "프로젝트 파일 ${it}개 생성 · 소스 점검 완료"; message = "소스 생성 완료. 실제 APK 빌드와 기기 실행은 아직 검증되지 않았습니다." }
                     .onFailure { workflow.fail("생성 결과 저장 실패: ${it.message}"); stage = "생성 결과 저장 실패: ${it.message}"; message = response.take(2000) }
             }
         }, modifier = Modifier.fillMaxWidth()) { Text(if (busy) "생성 중…" else "① AI로 새 게임 만들기") }
         Button(enabled = !busy && store.exists(), onClick = {
             busy = true
             reviewRoundsCompleted = 0
-            workflow.transition(CraftWorkflowStore.Phase.REFINE, "AI 소스 검토·개선 시작")
+            workflow.startRefinement("AI 소스 검토·개선 시작")
             fun runReview(round: Int) {
                 stage = "AI 코드 점검·개선 $round/3 단계…"
                 activity.askProject(settings, prompt(true, round)) { response ->
@@ -232,7 +232,7 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
                         workflow.addEvidence("ai_source_review", "round-" + round, "AI 소스 검토 완료. 실제 빌드·기기 실행 검증은 아님.", 0.35)
                         if (round < 3) runReview(round + 1) else {
                             busy = false
-                            workflow.transition(CraftWorkflowStore.Phase.CHECK, "AI 자체 점검 3회 완료", "정적 소스 검토만 완료. 실제 Gradle 빌드 및 기기 실행은 미실행.")
+                            workflow.transition(CraftWorkflowStore.Phase.CHECK, "AI 자체 점검 3회 완료", "정적 소스 검토만 완료. 실제 Gradle 빌드 및 기기 실행은 미실행."); workflow.recordCheck(CraftWorkflowStore.CheckResult("ai_source_review", null, null, "AI 자체 소스 검토 3회 완료. 빌드·기기 실행은 미검증.", false)); workflow.transition(CraftWorkflowStore.Phase.SOURCE_READY, "소스 검토 완료 · 빌드 미검증", "APK 빌드와 실제 실행은 별도 검증 필요.")
                             stage = "AI 자체 점검 3회 완료 · 파일 $it개 (실제 빌드 미실행)"
                         }
                     }.onFailure {
