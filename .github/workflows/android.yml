@@ -37,6 +37,8 @@ jobs:
           test -f craft-anything-android/app/build.gradle.kts
           python3 scripts/patch_android_beginner_ui.py
           python3 scripts/patch_android_project_builder.py
+          python3 scripts/patch_android_native_workflow.py
+          python3 -m py_compile scripts/patch_android_native_workflow.py
           python3 scripts/patch_android_visual_check.py
           python3 -m py_compile scripts/patch_android_visual_check.py
           python3 scripts/patch_android_local_task_model.py
@@ -117,6 +119,10 @@ jobs:
         run: |
           mkdir -p upstream/apps
           cp -a craft-anything-android upstream/apps/craft-anything-android
+
+      - name: Test Android Rust workflow engine
+        working-directory: upstream/apps/craft-anything-android/native
+        run: cargo test --locked
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
