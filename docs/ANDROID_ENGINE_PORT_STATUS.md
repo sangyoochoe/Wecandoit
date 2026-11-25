@@ -45,6 +45,10 @@ The generated-project action is now routed through one `CraftAgentOrchestrator`.
 
 The coordinator is a single controller; the stages are not independent agents. At present each stage is a separate AI chat request. The implementation does **not** yet have the upstream MCP tool loop, autonomous shell/Gradle execution, Android emulator launch, screenshot capture, or runtime-driven refinement. A source-ready result must not be interpreted as a verified APK.
 
+## Purpose-driven app icon design
+
+Project generation now treats launcher and in-app iconography as part of the product design rather than a default asset. The Study/Build/Refine prompt requires the icon concept to derive from the app's purpose, main user action, genre/domain, and selected UI visual language; it also asks for consistent in-app icon shape, stroke, corner, and contrast rules. The generated project must provide an Android adaptive launcher icon with a VectorDrawable foreground and a color background resource, and its Manifest must reference that icon. The source preflight rejects missing or incorrectly structured adaptive icon assets before replacing the previously saved project. This validates asset structure, not the aesthetic quality of the generated artwork; visual review on launcher sizes and Fold screens remains a validation task.
+
 ## Generated Android project preflight and remote smoke test
 
 The generated-project save path now runs a structural preflight before replacing the previously saved project. It requires settings.gradle.kts, root and app Gradle scripts, an Android application plugin declaration, compileSdk, namespace, an AndroidManifest with an application and MAIN/LAUNCHER activity, and non-empty Kotlin source under app/src/main/java. Failed preflight leaves the prior saved project intact because validation runs in the staging directory before the atomic replacement.
