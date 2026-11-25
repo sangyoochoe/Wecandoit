@@ -1,6 +1,6 @@
 # Android engine port: verified status and implementation plan
 
-Updated: 2026-11-22
+Updated: 2026-11-25
 
 This document records the verified boundary between the current Android shell and the upstream Craft Anything rebuild workflow. It is not a claim that the Android port is complete.
 
@@ -33,6 +33,16 @@ The workflow explicitly sets:
 - `CRAFT_ANDROID_WITH_UPSTREAM_ENGINE=0`
 
 The repository README also records that the full desktop AI agent engine is not linked and that desktop process/PTY backends need Android-specific implementations. Therefore the current app is a file-analysis Android app with AI-provider settings; it is not yet an Android implementation of Study → Build → Check → Refine.
+
+## New Android-native Rust workflow core (implementation in progress)
+
+The Android build now injects `scripts/android_workflow.rs` into the extracted JNI crate and exposes two JNI calls:
+- `nativeWorkflowTransition`: validates the Study → Build → Check → Refine lifecycle and appends a timestamped event.
+- `nativeWorkflowRecordCheck`: records pass/fail/unknown, an optional numeric score, a summary, and whether the check was actually executed.
+
+The Kotlin workflow store delegates phase transitions and check records to this Rust core, then persists the returned state in app-private storage. The Rust module includes unit tests for valid/invalid transitions, honest non-executed checks, and bounded evidence. CI runs these Rust tests and compiles Kotlin without creating an APK on ordinary pushes.
+
+This is a real Rust/JNI integration, but it is **not** the upstream desktop agent loop. It does not yet run coding-agent tools, execute generated Gradle builds, launch generated apps, capture runtime output, or automatically feed measured runtime differences into a coding agent. The upstream engine feature remains disabled. No full Android rebuild run or APK runtime comparison is claimed.
 
 ## Required implementation work
 
