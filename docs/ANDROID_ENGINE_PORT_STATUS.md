@@ -30,7 +30,7 @@ The current Android workflow extracts `CraftAnything-Android-Phase10.zip`, appli
 
 The workflow explicitly sets:
 - `CRAFT_ANDROID_WITH_UPSTREAM_FORMATS=1`
-- `CRAFT_ANDROID_WITH_UPSTREAM_ENGINE=0`
+- `CRAFT_ANDROID_WITH_UPSTREAM_ENGINE=1` (an attempted enablement of the upstream read-only analysis tools; Android-target compilation is not yet verified).
 
 The repository README also records that the full desktop AI agent engine is not linked and that desktop process/PTY backends need Android-specific implementations. Therefore the current app is a file-analysis Android app with AI-provider settings; it is not yet an Android implementation of Study → Build → Check → Refine.
 
@@ -41,7 +41,7 @@ The Android build now injects `scripts/android_workflow.rs` into the extracted J
 - `nativeWorkflowAddEvidence`: stores bounded evidence with a confidence value.
 - `nativeWorkflowRecordCheck`: records pass/fail/unknown, an optional numeric score, a summary, and whether the check was actually executed.
 
-The Kotlin workflow store delegates phase transitions, evidence writes and check records to this Rust core, then persists the returned state in app-private storage. The patch script now fails fast if any of these three Kotlin-to-Rust calls is missing, preventing a silent fallback to Kotlin-only state changes. The Rust module includes unit tests for valid/invalid transitions, honest non-executed checks, and bounded evidence. CI runs these Rust tests and compiles Kotlin without creating an APK on ordinary pushes.
+The Kotlin workflow store delegates phase transitions, evidence writes and check records to this Rust core, then persists the returned state in app-private storage. The patch script now fails fast if any of these three Kotlin-to-Rust calls is missing, preventing a silent fallback to Kotlin-only state changes. Rust event history now keeps monotonic sequence numbers after old events are trimmed; check history is capped at 300 records, matching the bounded event log. Unit tests cover valid/invalid transitions, honest non-executed checks, bounded evidence, monotonic event numbering, and bounded check history. CI runs these Rust tests and compiles Kotlin without creating an APK on ordinary pushes.
 
 This is a real Rust/JNI integration, but it is **not** the upstream desktop agent loop. It does not yet run coding-agent tools, execute generated Gradle builds, launch generated apps, capture runtime output, or automatically feed measured runtime differences into a coding agent. The CI workflow has been changed to attempt the upstream engine feature for the six read-only Android analysis tools; that Android-target compilation has not yet been verified. The upstream AI crate/agent loop remains unlinked. No full Android rebuild run or APK runtime comparison is claimed.
 
