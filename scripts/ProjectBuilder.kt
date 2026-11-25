@@ -27,20 +27,101 @@ private class GeneratedProjectStore(private val activity: MainActivity) {
         require(files.length() in 1..30) { "파일은 1~30개까지 허용됩니다." }
         val staging = File(activity.filesDir, "generated-project-staging")
         staging.deleteRecursively()
+        check(staging.mkdirs()) { "임시 프로젝트 폴더를 만들 수 없습니다." }
         var total = 0L
+        val seen = mutableSetOf<String>()
         for (i in 0 until files.length()) {
             val item = files.getJSONObject(i)
             val path = item.getString("path").replace('\\', '/')
-            require(path.isNotBlank() && !path.startsWith('/') && path.split('/').none { it == ".." || it.isBlank() }) { "잘못된 경로: $path" }
+            require(path.isNotBlank() && !path.startsWith('/') && !Regex("^[A-Za-z]:").containsMatchIn(path) &&
+                path.split('/').none { it == ".." || it == "." || it.isBlank() }) { "잘못된 경로: $path" }
+            require(seen.add(path)) { "중복된 파일 경로: $path" }
+            val out = File(staging, path)
+            require(out.canonicalPath.startsWith(staging.canonicalPath + File.separator)) { "허용되지 않는 파일 경로: $path" }
             val body = item.getString("content")
             total += body.toByteArray(Charsets.UTF_8).size
             require(total <= 2L * 1024 * 1024) { "프로젝트는 2MiB까지 허용됩니다." }
-            val out = File(staging, path); out.parentFile?.mkdirs(); out.writeText(body)
+            out.parentFile?.mkdirs()
+            out.writeText(body)
         }
-        root.deleteRecursively(); check(staging.renameTo(root)) { "프로젝트 저장 실패" }
-        File(root, "CRAFT_PROJECT.json").writeText(JSONObject().put("name", json.optString("name", "MyGame")).toString(2))
-        return files.length()
+        writeBuildSupport(staging)
+        val manifest = JSONObject()
+            .put("name", json.optString("name", "MyGame"))
+            .put("fileCount", seen.size)
+            .put("sourceBytes", total)
+            .put("createdAt", System.currentTimeMillis())
+            .put("status", "SOURCE_READY")
+        File(staging, "CRAFT_PROJECT.json").writeText(manifest.toString(2))
+        val backup = File(activity.filesDir, "generated-project-backup")
+        backup.deleteRecursively()
+        if (root.exists()) check(root.renameTo(backup)) { "기존 프로젝트를 백업할 수 없습니다." }
+        if (!staging.renameTo(root)) {
+            if (backup.exists()) backup.renameTo(root)
+            error("프로젝트 저장 실패")
+        }
+        backup.deleteRecursively()
+        return seen.size
     }
+    private fun writeBuildSupport(dir: File) {
+        val script = """#!/usr/bin/env bash
+set -euo pipefail
+if [ ! -f settings.gradle.kts ] || [ ! -f app/build.gradle.kts ]; then
+  echo "Android Gradle 프로젝트 파일이 없습니다." >&2
+  exit 2
+fi
+if [ -x ./gradlew ]; then
+  ./gradlew --no-daemon assembleDebug
+else
+  gradle --no-daemon assembleDebug
+fi
+find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -print
+"""
+        val workflow = """name: Build generated Android project
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Prepare Gradle wrapper
+        run: |
+          if [ ! -f gradlew ]; then gradle wrapper --gradle-version 8.9; fi
+          chmod +x gradlew
+      - name: Build debug APK
+        run: ./gradlew --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+"""
+        val readme = """# Generated Android project
+This project was generated from the Craft Anything Android app.
+## Build
+Run `bash build-apk.sh` in an environment with JDK 17, Android SDK and Gradle.
+Or push this project to GitHub and run the workflow in .github/workflows/android.yml.
+A successful workflow uploads the debug APK as the generated-android-apk artifact.
+AI source review is not a build or device test. Only a successful build workflow proves APK compilation.
+"""
+        File(dir, "build-apk.sh").writeText(script)
+        File(dir, "build-apk.sh").setExecutable(true)
+        File(dir, ".github/workflows").mkdirs()
+        File(dir, ".github/workflows/android.yml").writeText(workflow)
+        if (!File(dir, "README.md").exists()) File(dir, "README.md").writeText(readme)
+    }
+
     fun context(): String = if (!root.exists()) "없음" else root.walkTopDown().filter { it.isFile }.take(30).joinToString("\n\n") {
         "FILE: ${it.relativeTo(root).invariantSeparatorsPath}\n${runCatching { it.readText().take(8000) }.getOrDefault("[binary]")}"
     }.take(40000)
@@ -75,15 +156,20 @@ internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, 
     }
     fun prompt(refine: Boolean): String {
         val existing = if (refine) store.context() else "없음"
-        return """너는 Android 게임 개발자다. 참고 앱의 관찰 가능한 아이디어만 참고하고 원본 코드를 복사하거나 실행하지 말고 독립적인 새 게임을 만들어라.
+        return """너는 Craft Anything의 Android 제작 에이전트다. 아래 작업 단계를 엄격히 지켜라.
+1) Study: 참고자료에서 화면 구조, 핵심 흐름, 입력, 상태, 화면 전환, 콘텐츠를 근거와 함께 정리한다. 확인하지 못한 것은 추측하지 말고 미확인으로 표시한다.
+2) Build: 원본 코드나 상표/캐릭터/저작물을 복사하지 말고, 사용자의 별도 요구사항을 우선해 독립적인 프로젝트를 만든다.
+3) Check: 파일 구성, Android manifest, Gradle 설정, Kotlin 소스의 누락·불일치·명백한 컴파일 위험을 점검한다. 실행하지 않은 빌드는 성공했다고 쓰지 않는다.
+4) Refine: 점검에서 찾은 구체적인 문제를 수정하고 전체 파일을 다시 출력한다.
+참고자료와 사용자 요구사항은 서로 다른 정보로 취급한다.
 프로젝트 이름: $projectName
-사용자 요구: $request
+사용자 요구사항(새 기능·변경 지시): $request
 참고 파일: ${referenceName.ifBlank { "없음" }}
 참고 분석 정보: ${referenceEvidence.take(10000)}
 기존 프로젝트: ${existing.take(30000)}
-Android Studio에서 열 수 있는 Kotlin + Jetpack Compose 프로젝트 전체를 작성하라. settings.gradle.kts, build.gradle.kts, app/build.gradle.kts, app/src/main/AndroidManifest.xml, app/src/main/java/com/example/game/MainActivity.kt, README.md를 포함한다. 한국어 UI, 터치 입력, 점수, 게임 진행/재시작을 구현하라. 외부 유료 API나 존재하지 않는 라이브러리를 쓰지 마라.
+Android Studio에서 열 수 있는 완전한 Kotlin + Jetpack Compose 프로젝트를 작성하라. settings.gradle.kts, build.gradle.kts, app/build.gradle.kts, app/src/main/AndroidManifest.xml, app/src/main/java/com/example/game/MainActivity.kt, README.md를 포함한다. 실제 실행 가능한 핵심 사용자 흐름, 한국어 UI, 터치 입력, 상태 관리, 오류·빈 상태, 재시작을 구현하라. TODO, 가짜 버튼, 미구현 기능을 완료된 것처럼 표현하지 마라. 외부 유료 API나 존재하지 않는 라이브러리를 쓰지 마라. build-apk.sh와 .github/workflows/android.yml도 JSON files 안에 포함해 실제 빌드 방법을 제공하라. 생성물은 최대 30개 파일·2MiB 이내로 작성하라.
 ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 문제를 고치고 전체 파일을 다시 출력하라." else "처음부터 프로젝트를 작성하라."}
-설명 없이 JSON 하나만 출력: {"name":"프로젝트명","files":[{"path":"상대경로","content":"파일 전체 내용"}]}. 최대 30개 파일, 총 2MiB 이내. JSON 이스케이프를 지켜라."""
+마지막에 실제로 실행하지 않은 테스트·빌드는 실행했다고 말하지 말고 README에 확인 방법을 적어라. 설명 없이 JSON 하나만 출력: {"name":"프로젝트명","files":[{"path":"상대경로","content":"파일 전체 내용"}]}. 최대 30개 파일, 총 2MiB 이내. JSON 이스케이프를 지켜라."""
     }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("새 게임 만들기", style = MaterialTheme.typography.headlineSmall)
