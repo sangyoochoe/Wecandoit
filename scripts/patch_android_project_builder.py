@@ -6,6 +6,7 @@ main = root / 'MainActivity.kt'
 s = main.read_text(encoding='utf-8')
 shutil.copyfile('scripts/ProjectBuilder.kt', root / 'ProjectBuilder.kt')
 shutil.copyfile('scripts/CraftWorkflow.kt', root / 'CraftWorkflow.kt')
+shutil.copyfile('scripts/CraftAgentOrchestrator.kt', root / 'CraftAgentOrchestrator.kt')
 
 if 'BUILD("제작"' not in s:
     s = s.replace(
