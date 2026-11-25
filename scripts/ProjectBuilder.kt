@@ -151,7 +151,7 @@ jobs:
           if [ ! -f gradlew ]; then gradle wrapper --gradle-version 8.9; fi
           chmod +x gradlew
       - name: Build and unit-test Android project
-        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:connectedDebugAndroidTest
+        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
       - name: Install and launch on Android emulator
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
@@ -159,6 +159,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           script: |
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest
             APK="$(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' | head -n 1)"
             test -n "${'$'}APK"
             APP_ID="$(grep -E 'applicationId[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*applicationId[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
