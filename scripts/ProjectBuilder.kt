@@ -143,7 +143,7 @@ AI source review is not a build or device test. Only a successful build workflow
 internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, referenceName: String, referenceEvidence: String, onSettings: () -> Unit) {
     val store = remember(activity) { GeneratedProjectStore(activity) }
     val workflow = remember(activity) { CraftWorkflowStore(activity) }
-    val orchestrator = remember(activity, workflow, store) {
+    val orchestrator = remember(activity, workflow, store, settings) {
         CraftAgentOrchestrator(workflow, { p, callback -> activity.askProject(settings, p, callback) }, store::save)
     }
     var request by remember { mutableStateOf("참고 게임의 진행 방식은 참고하되 캐릭터와 배경은 새롭게 만들고 모바일 세로 화면에 맞춰 주세요.") }
@@ -250,32 +250,6 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
         }, modifier = Modifier.fillMaxWidth()) {
             Text(if (busy) "오케스트레이터 실행 중…" else "① Study → Build → Check → Refine 실행")
         }
-        Button(enabled = !busy && store.exists(), onClick = {
-            busy = true
-            reviewRoundsCompleted = 0
-            workflow.startRefinement("AI 소스 검토·개선 시작")
-            fun runReview(round: Int) {
-                stage = "AI 코드 점검·개선 $round/3 단계…"
-                activity.askProject(settings, prompt(true, round)) { response ->
-                    val saved = runCatching { store.save(response) }
-                    saved.onSuccess {
-                        count = it
-                        reviewRoundsCompleted = round
-                        workflow.addEvidence("ai_source_review", "round-" + round, "AI 소스 검토 완료. 실제 빌드·기기 실행 검증은 아님.", 0.35)
-                        if (round < 3) runReview(round + 1) else {
-                            busy = false
-                            workflow.transition(CraftWorkflowStore.Phase.CHECK, "AI 자체 점검 3회 완료", "정적 소스 검토만 완료. 실제 Gradle 빌드 및 기기 실행은 미실행."); workflow.recordCheck(CraftWorkflowStore.CheckResult("ai_source_review", null, null, "AI 자체 소스 검토 3회 완료. 빌드·기기 실행은 미검증.", false)); workflow.transition(CraftWorkflowStore.Phase.SOURCE_READY, "소스 검토 완료 · 빌드 미검증", "APK 빌드와 실제 실행은 별도 검증 필요.")
-                            stage = "AI 자체 점검 3회 완료 · 파일 ${it}개 (실제 빌드 미실행)"
-                        }
-                    }.onFailure {
-                        busy = false
-                        workflow.fail("개선 $round/3 실패: ${it.message}")
-                        stage = "개선 $round/3 실패: ${it.message}"
-                    }
-                }
-            }
-            runReview(1)
-        }, modifier = Modifier.fillMaxWidth()) { Text("② AI 코드 점검·개선 3회") }
         OutlinedButton(enabled = !busy && store.exists(), onClick = { exportPicker.launch("${projectName.ifBlank { "MyGame" }}-source.zip") }, modifier = Modifier.fillMaxWidth()) { Text("③ 프로젝트 소스 ZIP 내보내기") }
         Text("현재 상태: $stage", color = MaterialTheme.colorScheme.primary)
         if (message.isNotBlank()) Text(message, style = MaterialTheme.typography.bodySmall)
