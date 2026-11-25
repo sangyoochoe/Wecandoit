@@ -36,13 +36,14 @@ The repository README also records that the full desktop AI agent engine is not 
 
 ## New Android-native Rust workflow core (implementation in progress)
 
-The Android build now injects `scripts/android_workflow.rs` into the extracted JNI crate and exposes two JNI calls:
+The Android build now injects `scripts/android_workflow.rs` into the extracted JNI crate and exposes three JNI calls:
 - `nativeWorkflowTransition`: validates the Study → Build → Check → Refine lifecycle and appends a timestamped event.
+- `nativeWorkflowAddEvidence`: stores bounded evidence with a confidence value.
 - `nativeWorkflowRecordCheck`: records pass/fail/unknown, an optional numeric score, a summary, and whether the check was actually executed.
 
-The Kotlin workflow store delegates phase transitions and check records to this Rust core, then persists the returned state in app-private storage. The Rust module includes unit tests for valid/invalid transitions, honest non-executed checks, and bounded evidence. CI runs these Rust tests and compiles Kotlin without creating an APK on ordinary pushes.
+The Kotlin workflow store delegates phase transitions, evidence writes and check records to this Rust core, then persists the returned state in app-private storage. The Rust module includes unit tests for valid/invalid transitions, honest non-executed checks, and bounded evidence. CI runs these Rust tests and compiles Kotlin without creating an APK on ordinary pushes.
 
-This is a real Rust/JNI integration, but it is **not** the upstream desktop agent loop. It does not yet run coding-agent tools, execute generated Gradle builds, launch generated apps, capture runtime output, or automatically feed measured runtime differences into a coding agent. The upstream engine feature remains disabled. No full Android rebuild run or APK runtime comparison is claimed.
+This is a real Rust/JNI integration, but it is **not** the upstream desktop agent loop. It does not yet run coding-agent tools, execute generated Gradle builds, launch generated apps, capture runtime output, or automatically feed measured runtime differences into a coding agent. The CI workflow has been changed to attempt the upstream engine feature for the six read-only Android analysis tools; that Android-target compilation has not yet been verified. The upstream AI crate/agent loop remains unlinked. No full Android rebuild run or APK runtime comparison is claimed.
 
 ## Required implementation work
 
