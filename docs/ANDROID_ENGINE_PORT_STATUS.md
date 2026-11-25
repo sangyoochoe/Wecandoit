@@ -45,6 +45,12 @@ The generated-project action is now routed through one `CraftAgentOrchestrator`.
 
 The coordinator is a single controller; the stages are not independent agents. At present each stage is a separate AI chat request. The implementation does **not** yet have the upstream MCP tool loop, autonomous shell/Gradle execution, Android emulator launch, screenshot capture, or runtime-driven refinement. A source-ready result must not be interpreted as a verified APK.
 
+## Launcher icon rendered-size review
+
+The generated-project contract now requires an AndroidJUnitRunner instrumentation test named `LauncherIconRenderingTest`. It must load the packaged application icon through PackageManager, render it to PNG at 32dp, 40dp and 48dp, and write the previews under the app's external-files `icon-review` directory. The generated GitHub Actions workflow runs this instrumentation test only after starting the Android emulator, then uploads the PNG previews with the APK and app-launch screenshot. The source preflight rejects projects missing the runner/dependencies or rendering test.
+
+This verifies that the packaged icon can be retrieved and rendered at small launcher sizes; it does not automatically judge whether the design is attractive, recognizable, or correctly balanced. The CI emulator uses a Pixel launcher and cannot reproduce Samsung One UI masks or Galaxy Z Fold cover/unfolded launcher layouts. Those still require visual review on the actual Fold device. The app itself does not yet automatically send a generated project to GitHub Actions or ingest its artifacts.
+
 ## Purpose-driven app icon design
 The generated-project structural gate also requires a legacy `mipmap-anydpi/ic_launcher.xml` VectorDrawable fallback for Android 7 and earlier, a 108×108 adaptive foreground vector with a path, and the color resource referenced by the adaptive icon. The generated GitHub Actions smoke workflow inspects the packaged APK metadata with `aapt` to confirm that a launcher icon resource is present. This is resource/package verification, not a human visual-quality judgement; visual review criteria are recorded in the generated README.
 
