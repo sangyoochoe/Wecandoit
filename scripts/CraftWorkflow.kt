@@ -68,8 +68,10 @@ internal class CraftWorkflowStore(context: Context) {
             Phase.REFINE -> setOf(Phase.CHECK, Phase.FAILED, Phase.PAUSED)
         }
         require(next in allowed) { "잘못된 단계 전환: ${current.name} -> ${next.name}" }
-        data.put("phase", next.name).put("status", status)
-        event("PHASE_CHANGED", if (detail.isBlank()) status else detail); save()
+        val native = JSONObject(NativeBridge.nativeWorkflowTransition(data.toString(), next.name, status, detail))
+        require(native.optBoolean("ok")) { native.optString("error", "Rust 워크플로 단계 전환 실패") }
+        data = native.getJSONObject("state")
+        save()
     }
 
     fun startRefinement(status: String) = synchronized(lock) {
@@ -86,10 +88,14 @@ internal class CraftWorkflowStore(context: Context) {
     /** Records the exact check and whether it was actually executed. */
     fun recordCheck(result: CheckResult) = synchronized(lock) {
         val a = data.optJSONArray("checks") ?: JSONArray().also { data.put("checks", it) }
-        a.put(JSONObject().put("id", result.checkId).put("passed", result.passed)
-            .put("score", result.score).put("summary", result.summary.take(4000))
-            .put("executed", result.executed).put("at", System.currentTimeMillis()))
-        event("CHECK_RECORDED", result.summary); save()
+        val native = JSONObject(NativeBridge.nativeWorkflowRecordCheck(
+            data.toString(), result.checkId,
+            result.passed?.let { if (it) 1 else 0 } ?: -1,
+            result.score ?: Double.NaN, result.summary, result.executed
+        ))
+        require(native.optBoolean("ok")) { native.optString("error", "Rust 검사 기록 실패") }
+        data = native.getJSONObject("state")
+        save()
     }
     fun fail(reason: String) = synchronized(lock) {
         val native = JSONObject(NativeBridge.nativeWorkflowTransition(data.toString(), Phase.FAILED.name, reason, reason))
