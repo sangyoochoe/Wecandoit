@@ -92,10 +92,16 @@ internal class CraftWorkflowStore(context: Context) {
         event("CHECK_RECORDED", result.summary); save()
     }
     fun fail(reason: String) = synchronized(lock) {
-        data.put("phase", Phase.FAILED.name).put("status", reason); event("RUN_FAILED", reason); save()
+        val native = JSONObject(NativeBridge.nativeWorkflowTransition(data.toString(), Phase.FAILED.name, reason, reason))
+        require(native.optBoolean("ok")) { native.optString("error", "Rust 실패 상태 기록 실패") }
+        data = native.getJSONObject("state")
+        save()
     }
     fun pause(reason: String) = synchronized(lock) {
-        data.put("phase", Phase.PAUSED.name).put("status", reason); event("RUN_PAUSED", reason); save()
+        val native = JSONObject(NativeBridge.nativeWorkflowTransition(data.toString(), Phase.PAUSED.name, reason, reason))
+        require(native.optBoolean("ok")) { native.optString("error", "Rust 일시중지 기록 실패") }
+        data = native.getJSONObject("state")
+        save()
     }
     fun phase(): Phase = runCatching { Phase.valueOf(data.optString("phase", Phase.IDLE.name)) }.getOrDefault(Phase.IDLE)
     fun snapshot(): JSONObject = synchronized(lock) { JSONObject(data.toString()) }
