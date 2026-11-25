@@ -31,13 +31,13 @@ internal class CraftAgentOrchestrator(
             runCatching {
                 workflow.addEvidence("study_notes", "study-agent", study, 0.55)
                 workflow.transition(CraftWorkflowStore.Phase.BUILD, "Build · 새 프로젝트 생성")
-            }.onFailure { fail(it.message ?: "Study 단계 저장 실패", onComplete); return@buildResult }
+            }.onFailure { fail(it.message ?: "Study 단계 저장 실패", onComplete); return@studyResult }
             onStage("Build · 독립 프로젝트 생성")
             ask(buildPrompt(study)) buildResult@ { generated ->
                 val initialCount = runCatching { saveProject(generated) }
                 if (initialCount.isFailure) {
                     fail(initialCount.exceptionOrNull()?.message ?: "프로젝트 저장 실패", onComplete)
-                    return@reviewResult
+                    return@buildResult
                 }
                 runCatching {
                     workflow.transition(CraftWorkflowStore.Phase.CHECK, "Check · 소스 구조 검사")
@@ -45,7 +45,7 @@ internal class CraftAgentOrchestrator(
                         "source_structure", true, null,
                         "경로·중복·파일 수·크기 검증 통과. Gradle 빌드 및 앱 실행은 미실행.", false
                     ))
-                }.onFailure { fail(it.message ?: "소스 검사 기록 실패", onComplete); return@ask }
+                }.onFailure { fail(it.message ?: "소스 검사 기록 실패", onComplete); return@buildResult }
                 review(1, reviewRounds, study, initialCount.getOrThrow(), buildPrompt(study), reviewPrompt, onStage, onComplete)
             }
         }
@@ -78,7 +78,7 @@ internal class CraftAgentOrchestrator(
             val count = runCatching { saveProject(revised) }
             if (count.isFailure) {
                 fail(count.exceptionOrNull()?.message ?: "개선 결과 저장 실패", onComplete)
-                return@ask
+                return@reviewResult
             }
             runCatching {
                 workflow.addEvidence("ai_refinement", "round-$round",
@@ -88,7 +88,7 @@ internal class CraftAgentOrchestrator(
                     "refine_source_$round", true, null,
                     "개선 결과의 경로·중복·파일 수·크기 검증 통과. Gradle 빌드 및 앱 실행은 미실행.", false
                 ))
-            }.onFailure { fail(it.message ?: "개선 검사 기록 실패", onComplete); return@ask }
+            }.onFailure { fail(it.message ?: "개선 검사 기록 실패", onComplete); return@reviewResult }
             review(round + 1, limit, study, count.getOrThrow(), buildContext, reviewPrompt, onStage, onComplete)
         }
     }
