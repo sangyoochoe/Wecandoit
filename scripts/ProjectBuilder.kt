@@ -143,6 +143,9 @@ AI source review is not a build or device test. Only a successful build workflow
 internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, referenceName: String, referenceEvidence: String, onSettings: () -> Unit) {
     val store = remember(activity) { GeneratedProjectStore(activity) }
     var request by remember { mutableStateOf("참고 게임의 진행 방식은 참고하되 캐릭터와 배경은 새롭게 만들고 모바일 세로 화면에 맞춰 주세요.") }
+    var referenceNotes by remember { mutableStateOf("") }
+    var deepAnalysis by remember { mutableStateOf(true) }
+    var cleanRoom by remember { mutableStateOf(true) }
     var projectName by remember { mutableStateOf("MyGame") }
     var stage by remember { mutableStateOf("대기 중") }
     var message by remember { mutableStateOf("") }
@@ -165,7 +168,10 @@ internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, 
 프로젝트 이름: $projectName
 사용자 요구사항(새 기능·변경 지시): $request
 참고 파일: ${referenceName.ifBlank { "없음" }}
-참고 분석 정보: ${referenceEvidence.take(10000)}
+참고 분석 정보(원본에서 관찰한 사실): ${referenceEvidence.take(if (deepAnalysis) 24000 else 10000)}
+사용자가 추가한 참고 설명: $referenceNotes
+분석 모드: ${if (deepAnalysis) "심층 분석" else "간편 분석"}
+독립 제작 모드: ${if (cleanRoom) "클린룸(원본 코드·리소스 복사 금지)" else "기능 아이디어 참고(복제 금지 원칙 유지)"}
 기존 프로젝트: ${existing.take(30000)}
 Android Studio에서 열 수 있는 완전한 Kotlin + Jetpack Compose 프로젝트를 작성하라. settings.gradle.kts, build.gradle.kts, app/build.gradle.kts, app/src/main/AndroidManifest.xml, app/src/main/java/com/example/game/MainActivity.kt, README.md를 포함한다. 실제 실행 가능한 핵심 사용자 흐름, 한국어 UI, 터치 입력, 상태 관리, 오류·빈 상태, 재시작을 구현하라. TODO, 가짜 버튼, 미구현 기능을 완료된 것처럼 표현하지 마라. 외부 유료 API나 존재하지 않는 라이브러리를 쓰지 마라. build-apk.sh와 .github/workflows/android.yml도 JSON files 안에 포함해 실제 빌드 방법을 제공하라. 생성물은 최대 30개 파일·2MiB 이내로 작성하라.
 ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 문제를 고치고 전체 파일을 다시 출력하라." else "처음부터 프로젝트를 작성하라."}
@@ -173,14 +179,28 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
     }
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("새 게임 만들기", style = MaterialTheme.typography.headlineSmall)
-        Text("참고 APK 분석 결과와 원하는 기능을 바탕으로 새 Android 프로젝트 코드를 생성합니다. 원본 APK는 실행하지 않습니다.", style = MaterialTheme.typography.bodySmall)
+        Text("참고자료 분석과 새 기능 요구사항을 분리해 독립적인 Android 프로젝트를 만듭니다. 원본 APK는 실행하지 않습니다.", style = MaterialTheme.typography.bodySmall)
         Card(shape = RoundedCornerShape(16.dp)) { Column(Modifier.padding(14.dp)) {
-            Text("참고 자료", style = MaterialTheme.typography.titleMedium)
+            Text("① 참고자료 (원본 분석 근거)", style = MaterialTheme.typography.titleMedium)
             Text(referenceName.ifBlank { "선택한 APK 없음" })
             Text(if (referenceEvidence.isBlank()) "홈에서 APK 분석을 먼저 실행하세요." else "분석 정보 ${referenceEvidence.length}자 준비됨")
         } }
+        Text("② 참고자료에 대한 내 설명", style = MaterialTheme.typography.labelLarge)
+        OutlinedTextField(referenceNotes, { referenceNotes = it }, Modifier.fillMaxWidth(), minLines = 2, label = { Text("참고자료에 대한 설명(선택)") })
         OutlinedTextField(projectName, { projectName = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text("새 게임 이름") })
-        OutlinedTextField(request, { request = it }, Modifier.fillMaxWidth(), minLines = 3, label = { Text("원하는 게임과 추가 기능") })
+        Text("③ 새 프로젝트에 원하는 기능", style = MaterialTheme.typography.labelLarge)
+        OutlinedTextField(request, { request = it }, Modifier.fillMaxWidth(), minLines = 3, label = { Text("새로 만들 기능·디자인 요구사항") })
+        Card { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("제작 방식", style = MaterialTheme.typography.titleSmall)
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Checkbox(checked = deepAnalysis, onCheckedChange = { deepAnalysis = it })
+                Text("심층 분석 (참고자료 근거를 더 많이 반영)")
+            }
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Checkbox(checked = cleanRoom, onCheckedChange = { cleanRoom = it })
+                Text("클린룸 제작 (원본 코드·이미지 복사 금지)")
+            }
+        }
         OutlinedButton(onClick = onSettings, modifier = Modifier.fillMaxWidth()) { Text("AI 연결 설정") }
         Button(enabled = !busy && request.isNotBlank(), onClick = {
             if (settings.model.isBlank()) { stage = "AI 모델을 설정하세요."; return@Button }
