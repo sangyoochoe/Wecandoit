@@ -45,6 +45,12 @@ The generated-project action is now routed through one `CraftAgentOrchestrator`.
 
 The coordinator is a single controller; the stages are not independent agents. At present each stage is a separate AI chat request. The implementation does **not** yet have the upstream MCP tool loop, autonomous shell/Gradle execution, Android emulator launch, screenshot capture, or runtime-driven refinement. A source-ready result must not be interpreted as a verified APK.
 
+## Generated Android project preflight and remote smoke test
+
+The generated-project save path now runs a structural preflight before replacing the previously saved project. It requires settings.gradle.kts, root and app Gradle scripts, an Android application plugin declaration, compileSdk, namespace, an AndroidManifest with an application and MAIN/LAUNCHER activity, and non-empty Kotlin source under app/src/main/java. Failed preflight leaves the prior saved project intact because validation runs in the staging directory before the atomic replacement.
+
+The generated source ZIP now contains a GitHub Actions workflow that runs Android unit tests, assembles a debug APK, installs it in an Android emulator, launches the package, captures a smoke-test screenshot, and uploads the APK and screenshot. This is a real build-and-launch path **after the user exports the ZIP into a GitHub repository and pushes it**. The Android app does not yet automatically upload generated source to a remote runner or receive that workflow result. Emulator launch is only a startup smoke test, not a feature-level test or visual-equivalence check.
+
 ## New Android-native Rust workflow core (implementation in progress)
 
 The Android build now injects `scripts/android_workflow.rs` into the extracted JNI crate and exposes three JNI calls:
@@ -92,6 +98,6 @@ This is a real Rust/JNI integration, but it is **not** the upstream desktop agen
 
 ## Current completion statement
 
-As of this update, the Android full rebuild engine is **not connected**. No end-to-end Android project-generation run has been verified. The existing debug APK is a test build, not a production release.
+As of this update, the Android full rebuild engine is **not connected**. No end-to-end Android project-generation run has been verified. The existing debug APK is a test build, not a production release. Generated project builds and emulator smoke tests are separate workflows and require the user to export the generated source ZIP to a GitHub repository.
 
 This document is an engineering baseline for the port. It does not mark any of the implementation gates above as complete.
