@@ -100,10 +100,10 @@ private class GeneratedProjectStore(private val activity: MainActivity) {
         require(foreground.isFile) { "런처 아이콘 foreground 파일이 없습니다." }
         val foregroundXml = foreground.readText()
         require(Regex("<vector\\b").containsMatchIn(foregroundXml) &&
-            Regex("android:viewportWidth=\\"108\\"").containsMatchIn(foregroundXml) &&
-            Regex("android:viewportHeight=\\"108\\"").containsMatchIn(foregroundXml) &&
+            Regex("android:viewportWidth=\"108\"").containsMatchIn(foregroundXml) &&
+            Regex("android:viewportHeight=\"108\"").containsMatchIn(foregroundXml) &&
             Regex("<path\\b").containsMatchIn(foregroundXml) &&
-            Regex("android:pathData=\\"[^\\"]+\\"").containsMatchIn(foregroundXml)) {
+            Regex("android:pathData=\"[^\"]+\"").containsMatchIn(foregroundXml)) {
             "런처 아이콘 foreground는 108x108 viewport와 실제 path가 있는 VectorDrawable이어야 합니다."
         }
         val legacyIcon = File(dir, "app/src/main/res/mipmap-anydpi/ic_launcher.xml")
