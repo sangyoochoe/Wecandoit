@@ -174,7 +174,7 @@ jobs:
           profile: pixel_2
           script: |
             ./gradlew --no-daemon :app:connectedDebugAndroidTest
-            APK="$(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' | head -n 1)"
+            APK="${'(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' | head -n 1)"
             test -n "${'$'}APK"
             APP_ID="$(grep -E 'applicationId[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*applicationId[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
             if [ -z "${'$'}APP_ID" ]; then
@@ -189,6 +189,187 @@ jobs:
             adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
             mkdir -p icon-review
             adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' | head -n 1)"
+            test -n "${'${''}APK"
+            APP_ID="$(grep -E 'applicationId[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*applicationId[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            if [ -z "${'$'}APP_ID" ]; then
+              APP_ID="$(grep -E 'namespace[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*namespace[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            fi
+            test -n "${'$'}APP_ID"
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "${'$'}APK" | grep -E "^application:.*icon="
+            adb install "${'$'}APK"
+            adb shell monkey -p "${'$'}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}'}APK"
+            APP_ID="${'(grep -E 'applicationId[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*applicationId[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            if [ -z "${'$'}APP_ID" ]; then
+              APP_ID="$(grep -E 'namespace[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*namespace[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            fi
+            test -n "${'$'}APP_ID"
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "${'$'}APK" | grep -E "^application:.*icon="
+            adb install "${'$'}APK"
+            adb shell monkey -p "${'$'}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}(grep -E 'applicationId[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*applicationId[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            if [ -z "${'${''}APP_ID" ]; then
+              APP_ID="$(grep -E 'namespace[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*namespace[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            fi
+            test -n "${'$'}APP_ID"
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "${'$'}APK" | grep -E "^application:.*icon="
+            adb install "${'$'}APK"
+            adb shell monkey -p "${'$'}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}'}APP_ID" ]; then
+              APP_ID="${'(grep -E 'namespace[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*namespace[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            fi
+            test -n "${'$'}APP_ID"
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "${'$'}APK" | grep -E "^application:.*icon="
+            adb install "${'$'}APK"
+            adb shell monkey -p "${'$'}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}(grep -E 'namespace[[:space:]]*=' app/build.gradle.kts | head -n 1 | sed -E 's/.*namespace[[:space:]]*=[[:space:]]*"([^"]+)".*/\\1/')"
+            fi
+            test -n "${'${''}APP_ID"
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "${'$'}APK" | grep -E "^application:.*icon="
+            adb install "${'$'}APK"
+            adb shell monkey -p "${'$'}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}'}APP_ID"
+            "${'ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "${'$'}APK" | grep -E "^application:.*icon="
+            adb install "${'$'}APK"
+            adb shell monkey -p "${'$'}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "${'${''}APK" | grep -E "^application:.*icon="
+            adb install "${'$'}APK"
+            adb shell monkey -p "${'$'}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}'}APK" | grep -E "^application:.*icon="
+            adb install "${'${''}APK"
+            adb shell monkey -p "${'$'}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}'}APK"
+            adb shell monkey -p "${'${''}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/$APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}'}APP_ID" 1
+            sleep 8
+            adb shell screencap -p /sdcard/craft-anything-smoke.png
+            adb pull /sdcard/craft-anything-smoke.png craft-anything-smoke.png
+            mkdir -p icon-review
+            adb pull "/sdcard/Android/data/${'APP_ID/files/icon-review/." icon-review/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-android-validation
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            craft-anything-smoke.png
+            icon-review/*.png
+          if-no-files-found: error}APP_ID/files/icon-review/." icon-review/
       - uses: actions/upload-artifact@v4
         with:
           name: generated-android-validation
