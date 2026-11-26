@@ -39,6 +39,9 @@ jobs:
           test -f craft-anything-android/app/build.gradle.kts
           python3 scripts/patch_android_beginner_ui.py
           python3 scripts/patch_android_project_builder.py
+          python3 scripts/patch_android_rea_bridge.py
+          python3 -m py_compile scripts/patch_android_rea_bridge.py
+          node --check rea-android-bridge/server.mjs
           python3 scripts/patch_android_native_workflow.py
           python3 -m py_compile scripts/patch_android_native_workflow.py
           python3 scripts/patch_android_visual_check.py
