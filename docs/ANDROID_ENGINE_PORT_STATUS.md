@@ -74,6 +74,16 @@ The Kotlin workflow store delegates phase transitions, evidence writes and check
 
 This is a real Rust/JNI integration, but it is **not** the upstream desktop agent loop. It does not yet run coding-agent tools, execute generated Gradle builds, launch generated apps, capture runtime output, or automatically feed measured runtime differences into a coding agent. The upstream engine feature was briefly enabled for the six read-only Android analysis tools, but CI failed in upstream native bridge code (`serde_json::from_str` type inference at `src/lib.rs:394`). It has been disabled again so the Android JNI workflow can be validated independently; the upstream analysis tools are not currently claimed as available. The upstream AI crate/agent loop remains unlinked. No full Android rebuild run or APK runtime comparison is claimed.
 
+## REA Android APK analysis bridge
+
+The Android project-builder screen now has an optional REA connection panel. It accepts an APK URI, a host address and a bearer token, streams the APK to the host, and appends the returned static-analysis JSON to the Study/Build reference context. The companion server is in `rea-android-bridge/server.mjs`; the Android HTTP client is injected from `scripts/ReaAndroidBridge.kt` by `scripts/patch_android_rea_bridge.py`.
+
+The companion invokes the installed REA CLI with `inspect-android-package <temporary-apk> --json`. This uses REA's actual JADX-backed Android package workflow, not a simulated parser. The bridge requires a bearer token, rejects requests without it, caps uploads at 80 MiB, writes temporary APKs with owner-only permissions, invokes the CLI with an argument array (no shell), and deletes the temporary APK after analysis. It does not install or execute the target APK.
+
+This first integration intentionally exposes only static package inspection. It does not yet connect host-side ADB device operations, runtime logs/screenshots, Apktool resource decoding, JEB or Frida. Those need separate host prerequisites and explicit device-mutation controls. The Android app also does not bundle Node.js/JDK/JADX; REA runs on a host PC that the phone can reach over a trusted LAN. Do not expose the unauthenticated/plain-HTTP bridge to the public internet; use a trusted LAN, VPN or TLS reverse proxy.
+
+CI syntax and Kotlin compilation are pending for this integration. No REA APK analysis has yet been run against a real user-supplied APK in this environment.
+
 ## Required implementation work
 
 ### 1. Android-safe engine boundary
