@@ -25,3 +25,4 @@ if escaped_literals != 2:
 builder.write_text(builder_source, encoding='utf-8')
 
 shutil.copyfile('scripts/CraftWorkflow.kt', root / 'CraftWorkflow.kt')
+shutil.copyfile('scripts/CraftAgentOrchestrator.kt', root / 'CraftAgentOrchestrator.kt')
