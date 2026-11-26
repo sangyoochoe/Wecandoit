@@ -38,8 +38,8 @@ if "var reaEndpoint by remember" not in s:
                     busy = false
                     result.onSuccess {
                         reaEvidence = it
-                        reaStatus = "REA 정적 분석 완료 · 근거 \${it.length}자"
-                    }.onFailure { reaStatus = "REA 분석 실패: \${it.message}" }
+                        reaStatus = "REA 정적 분석 완료 · 근거 ${it.length}자"
+                    }.onFailure { reaStatus = "REA 분석 실패: ${it.message}" }
                 }
             }, modifier = Modifier.fillMaxWidth()) { Text("REA APK 정적 분석 실행") }
             Text(reaStatus, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
@@ -48,13 +48,13 @@ if "var reaEndpoint by remember" not in s:
     if anchor not in s:
         raise SystemExit("REA panel insertion point missing")
     s = s.replace(anchor, panel + anchor, 1)
-    s = s.replace('\${referenceEvidence.take(if (deepAnalysis) 24000 else 10000)}',
-                  '\${(referenceEvidence + "\\n" + reaEvidence).take(if (deepAnalysis) 36000 else 12000)}')
+    s = s.replace('${referenceEvidence.take(if (deepAnalysis) 24000 else 10000)}',
+                  '${(referenceEvidence + "\\n" + reaEvidence).take(if (deepAnalysis) 36000 else 12000)}')
     builder.write_text(s, encoding="utf-8")
 manifest = Path("craft-anything-android/app/src/main/AndroidManifest.xml")
 m = manifest.read_text(encoding="utf-8")
 if "android.permission.INTERNET" not in m:
-    m = m.replace("<application", '<uses-permission android:name="android.permission.INTERNET" />\\n    <application', 1)
+    m = m.replace("<application", '<uses-permission android:name="android.permission.INTERNET" />\n    <application', 1)
 if "android:usesCleartextTraffic" not in m:
     m = m.replace("<application", '<application android:usesCleartextTraffic="true"', 1)
 manifest.write_text(m, encoding="utf-8")
