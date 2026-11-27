@@ -172,12 +172,12 @@ jobs:
         run: ./gradlew --no-daemon :app:compileDebugKotlin
 
       - name: Build debug APK
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name != 'pull_request'
         working-directory: upstream/apps/craft-anything-android
         run: ./gradlew --no-daemon assembleDebug
 
       - name: Upload debug APK
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: craft-anything-android-debug
