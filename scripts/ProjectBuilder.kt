@@ -239,7 +239,10 @@ internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, 
             activity.askAi(null, settings, p, "", false) { result ->
                 result.fold(
                     onSuccess = { response -> callback(response) },
-                    onFailure = { error -> callback("AI 프로젝트 생성 실패: ${'
+                    onFailure = { error -> callback("AI 프로젝트 생성 실패: ${'$'}{error.message}") }
+                )
+            }
+        }, store::save)
     }
     var request by remember { mutableStateOf("참고 게임의 진행 방식은 참고하되 캐릭터와 배경은 새롭게 만들고 모바일 세로 화면에 맞춰 주세요.") }
     var referenceNotes by remember { mutableStateOf("") }
