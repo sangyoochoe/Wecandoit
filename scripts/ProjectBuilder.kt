@@ -236,11 +236,8 @@ internal fun ProjectBuilderScreen(activity: MainActivity, settings: AiSettings, 
     val workflow = remember(activity) { CraftWorkflowStore(activity) }
     val orchestrator = remember(activity, workflow, store, settings) {
         CraftAgentOrchestrator(workflow, { p, callback ->
-            activity.askAi(null, settings, p, "", false) { result ->
-                result.fold(
-                    onSuccess = { response -> callback(response) },
-                    onFailure = { error -> callback("AI 프로젝트 생성 실패: ${'$'}{error.message}") }
-                )
+            activity.askAi(null, settings, p, "", false) { response ->
+                callback(response)
             }
         }, store::save)
     }
@@ -357,5 +354,4 @@ ${if (refine) "기존 프로젝트를 검토해 누락과 컴파일 가능성 �
             Text("AI 자체 점검은 소스 검토이며 실제 컴파일·기기 실행 테스트가 아닙니다. 내보낸 프로젝트는 build-apk.sh 또는 GitHub Actions에서 별도로 빌드해야 합니다.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
     }
-}
 }
