@@ -2,6 +2,9 @@ from pathlib import Path
 
 p = Path("craft-anything-android/app/src/main/java/ai/storyteller/craftanything/MainActivity.kt")
 s = p.read_text(encoding="utf-8")
+
+if "import androidx.compose.foundation.clickable" not in s:
+    s = s.replace("import androidx.compose.foundation.layout.*", "import androidx.compose.foundation.clickable\\nimport androidx.compose.foundation.layout.*", 1)
 anchor = '    var showAdvancedAi by remember { mutableStateOf(false) }'
 if anchor not in s: raise SystemExit("AI settings state anchor not found")
 if "var recommendationGoal by remember" not in s:
