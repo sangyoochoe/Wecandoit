@@ -44,3 +44,5 @@ for old, new in replacements.items():
     builder_source = builder_source.replace(old, new, 1)
 
 builder.write_text(builder_source, encoding='utf-8')
+shutil.copyfile('scripts/CraftWorkflow.kt', root / 'CraftWorkflow.kt')
+shutil.copyfile('scripts/CraftAgentOrchestrator.kt', root / 'CraftAgentOrchestrator.kt')
