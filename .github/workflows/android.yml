@@ -38,6 +38,8 @@ jobs:
           unzip -q CraftAnything-Android-Phase10.zip -d .
           test -f craft-anything-android/app/build.gradle.kts
           python3 scripts/patch_android_beginner_ui.py
+          python3 scripts/patch_android_recommend_ai.py
+          python3 -m py_compile scripts/patch_android_recommend_ai.py
           python3 scripts/patch_android_project_builder.py
           python3 scripts/patch_android_rea_bridge.py
           python3 -m py_compile scripts/patch_android_rea_bridge.py
