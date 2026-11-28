@@ -51,9 +51,10 @@ replacement = '''                MobileTab.AI -> LazyColumn(
                                 Text("추천 모델: ${recommendation.first.defaultModel}", style = MaterialTheme.typography.bodySmall)
                                 Button(onClick = {
                                     aiSettings = AiSettings(provider = recommendation.first, model = recommendation.first.defaultModel,
-                                        baseUrl = recommendation.first.defaultBaseUrl, apiKey = "")
+                                        baseUrl = recommendation.first.defaultBaseUrl,
+                                        apiKey = if (aiSettings.provider == recommendation.first) aiSettings.apiKey else "")
                                     SecureAiSettings(activity).save(aiSettings)
-                                    recommendationStatus = "${recommendation.first.label} 선택 완료. 설정에서 API 키를 입력하고 저장해 주세요."
+                                    recommendationStatus = if (aiSettings.apiKey.isNotBlank()) "${recommendation.first.label} 선택 완료. 기존 API 키를 유지했습니다." else "${recommendation.first.label} 선택 완료. 설정에서 API 키를 입력하고 저장해 주세요."
                                 }, modifier = Modifier.fillMaxWidth()) { Text("이 AI 선택하기") }
                                 OutlinedButton(onClick = { activeTab = MobileTab.SETTINGS }, modifier = Modifier.fillMaxWidth()) {
                                     Text("API 키 및 연결 설정")
