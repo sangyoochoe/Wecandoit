@@ -77,11 +77,13 @@ replacement = '''                                Text("처음이라면 아래 �
 if anchor not in s: raise SystemExit("AI question field anchor not found")
 s = s.replace(anchor, replacement, 1)
 
-import re
-pattern = r'(?m)^([ \\t]*)item \\{\\n(?=(?:[^\\n]*\\n){0,5}[ \\t]*Text\\("ON-DEVICE AI / LOCAL MODEL")'
-s, count = re.subn(pattern, r'\\1if (advancedMode) item {\\n', s, count=1)
-if count != 1: raise SystemExit("Local model panel anchor not found")
-s = s.replace('Text("ON-DEVICE AI / LOCAL MODEL",', 'Text("고급 기능 / 실험적 로컬 모델",', 1)
+target = 'Text("ON-DEVICE AI / LOCAL MODEL",'
+idx = s.find(target)
+if idx < 0: raise SystemExit("Local model panel title not found")
+start = s.rfind("                    item {", 0, idx)
+if start < 0: raise SystemExit("Local model list item not found")
+s = s[:start] + s[start:].replace("                    item {", "                    if (advancedMode) item {", 1)
+s = s.replace(target, 'Text("고급 기능 / 실험적 로컬 모델",', 1)
 
 s = s.replace(
     "참고: 현재 이 앱 버전에는 GGUF 온디바이스 추론 기능이 포함되어 있지 않습니다. 로컬 AI는 Ollama 서버 연결 방식입니다.",
