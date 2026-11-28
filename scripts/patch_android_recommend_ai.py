@@ -7,7 +7,7 @@ if "import androidx.compose.foundation.clickable" not in s:
     s = s.replace("import androidx.compose.foundation.layout.*", "import androidx.compose.foundation.clickable\\nimport androidx.compose.foundation.layout.*", 1)
 
 # Python replacement above must insert a real line break, not a literal backslash-n.
-s = s.replace("import androidx.compose.foundation.clickable\\\\nimport androidx.compose.foundation.layout.*", "import androidx.compose.foundation.clickable\\nimport androidx.compose.foundation.layout.*", 1)
+s = s.replace("clickable" + chr(92) + "nimport", "clickable\nimport", 1)
 anchor = '    var showAdvancedAi by remember { mutableStateOf(false) }'
 if anchor not in s: raise SystemExit("AI settings state anchor not found")
 if "var recommendationGoal by remember" not in s:
